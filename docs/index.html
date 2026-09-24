@@ -877,72 +877,91 @@
           </p>
         </div>
 
-        <div class="columns is-multiline is-centered vid-grid" style="margin-top:0.5rem;">
+        <div class="tabs-bar" role="tablist" aria-label="Task type">
+          <button type="button" class="tab-btn is-active" role="tab" id="t-hwvid-0" aria-controls="p-hwvid-0" aria-selected="true">Pretraining tasks</button>
+          <button type="button" class="tab-btn" role="tab" id="t-hwvid-1" aria-controls="p-hwvid-1" aria-selected="false" tabindex="-1">Finetuning tasks</button>
+        </div>
 
-          <div class="column is-full">
-            <div class="task-card">
-              <div class="task-name">cake-on-cake-tray <span class="badge badge-ft">finetune</span></div>
-              <div class="columns is-mobile" style="margin-bottom:0;">
-                <div class="column is-half">
-                  <div class="vid-label tag-sft">SFT</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sft_cake.mp4" type="video/mp4"></video>
-                </div>
-                <div class="column is-half">
-                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_cake.mp4" type="video/mp4"></video>
+        <div class="tab-panel" id="p-hwvid-0" role="tabpanel" aria-labelledby="t-hwvid-0">
+          <div class="content has-text-justified" style="margin-bottom:0.5rem;">
+            Tasks the policy learned during pretraining and <strong>must not forget</strong>.
+          </div>
+          <div class="columns is-multiline is-centered vid-grid" style="margin-top:0.5rem;">
+
+            <div class="column is-full">
+              <div class="task-card">
+                <div class="task-name">eraser-in-bowl</div>
+                <div class="columns is-mobile" style="margin-bottom:0;">
+                  <div class="column is-half">
+                    <div class="vid-label tag-sft">SFT</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_bowl.mp4" type="video/mp4"></video>
+                  </div>
+                  <div class="column is-half">
+                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_bowl.mp4" type="video/mp4"></video>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="column is-full">
-            <div class="task-card">
-              <div class="task-name">remove-lid-and-place-bird <span class="badge badge-ft">finetune</span></div>
-              <div class="columns is-mobile" style="margin-bottom:0;">
-                <div class="column is-half">
-                  <div class="vid-label tag-sft">SFT</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sft_removelid.mp4" type="video/mp4"></video>
-                </div>
-                <div class="column is-half">
-                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_removelid.mp4" type="video/mp4"></video>
+            <div class="column is-full">
+              <div class="task-card">
+                <div class="task-name">eraser-in-mug</div>
+                <div class="columns is-mobile" style="margin-bottom:0;">
+                  <div class="column is-half">
+                    <div class="vid-label tag-sft">SFT</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_mug.mp4" type="video/mp4"></video>
+                  </div>
+                  <div class="column is-half">
+                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_mug.mp4" type="video/mp4"></video>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="column is-full">
-            <div class="task-card">
-              <div class="task-name">eraser-in-bowl <span class="badge badge-pre">pretraining</span></div>
-              <div class="columns is-mobile" style="margin-bottom:0;">
-                <div class="column is-half">
-                  <div class="vid-label tag-sft">SFT</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_bowl.mp4" type="video/mp4"></video>
-                </div>
-                <div class="column is-half">
-                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_bowl.mp4" type="video/mp4"></video>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="p-hwvid-1" role="tabpanel" aria-labelledby="t-hwvid-1" hidden>
+          <div class="content has-text-justified" style="margin-bottom:0.5rem;">
+            The two tasks the policy was <strong>just taught</strong>, in sequence.
+          </div>
+          <div class="columns is-multiline is-centered vid-grid" style="margin-top:0.5rem;">
+
+            <div class="column is-full">
+              <div class="task-card">
+                <div class="task-name">cake-on-cake-tray</div>
+                <div class="columns is-mobile" style="margin-bottom:0;">
+                  <div class="column is-half">
+                    <div class="vid-label tag-sft">SFT</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sft_cake.mp4" type="video/mp4"></video>
+                  </div>
+                  <div class="column is-half">
+                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sambar_cake.mp4" type="video/mp4"></video>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="column is-full">
-            <div class="task-card">
-              <div class="task-name">eraser-in-mug <span class="badge badge-pre">pretraining</span></div>
-              <div class="columns is-mobile" style="margin-bottom:0;">
-                <div class="column is-half">
-                  <div class="vid-label tag-sft">SFT</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_mug.mp4" type="video/mp4"></video>
-                </div>
-                <div class="column is-half">
-                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
-                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_mug.mp4" type="video/mp4"></video>
+            <div class="column is-full">
+              <div class="task-card">
+                <div class="task-name">remove-lid-and-place-bird</div>
+                <div class="columns is-mobile" style="margin-bottom:0;">
+                  <div class="column is-half">
+                    <div class="vid-label tag-sft">SFT</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sft_removelid.mp4" type="video/mp4"></video>
+                  </div>
+                  <div class="column is-half">
+                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_sambar_removelid.mp4" type="video/mp4"></video>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>
@@ -1138,7 +1157,13 @@ document.querySelectorAll('.tabs-bar').forEach(function (bar) {
       t.setAttribute('aria-selected', on ? 'true' : 'false');
       if (on) { t.removeAttribute('tabindex'); } else { t.setAttribute('tabindex', '-1'); }
       var panel = document.getElementById(t.getAttribute('aria-controls'));
-      if (panel) { panel.hidden = !on; }
+      if (!panel) { return; }
+      panel.hidden = !on;
+      // a video in a hidden panel stays paused, so (re)start it when revealed
+      panel.querySelectorAll('video').forEach(function (v) {
+        if (on) { var p = v.play(); if (p && p.catch) { p.catch(function () {}); } }
+        else { v.pause(); }
+      });
     });
     if (focus) { tab.focus(); }
   }
