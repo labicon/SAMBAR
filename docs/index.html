@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="SAMBAR: Selective Anchoring via Method of Multipliers for Balanced Knowledge Acquisition and Retention in Vision-Language-Action Models">
+  <meta property="og:title" content="SAMBAR"/>
+  <meta property="og:description" content="A replay-free continual learning algorithm that lets a Vision-Language-Action policy learn new tasks sequentially without forgetting the ones it already knows."/>
+  <meta property="og:url" content="https://iconlab.negarmehr.com/SAMBAR/"/>
+
+  <meta name="twitter:title" content="SAMBAR">
+  <meta name="twitter:description" content="A replay-free continual learning algorithm that lets a Vision-Language-Action policy learn new tasks sequentially without forgetting the ones it already knows.">
+  <meta name="keywords" content="Continual Learning, Catastrophic Forgetting, Vision-Language-Action Models, VLA, Method of Multipliers, Robot Learning, Robotics, LIBERO">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SAMBAR</title>
+  <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({ tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]} });
+    MathJax.Hub.Config({ TeX: { equationNumbers: {autoNumber: "AMS"} } });
+  </script>
+  <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+  </script>
+
+  <style>
+    .reference { margin-bottom: 3mm; }
+
+    /* --- results tables --- */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 1.25rem 0 0.5rem 0;
+    }
+    table.results {
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      margin: 0 auto;
+      min-width: 100%;
+      font-family: 'Noto Sans', sans-serif;
+    }
+    table.results th, table.results td {
+      padding: 0.42em 0.85em;
+      text-align: center;
+      border: none;
+    }
+    table.results td { white-space: nowrap; }
+    table.results thead th {
+      border-bottom: 1.5px solid #363636;
+      font-weight: 600;
+      vertical-align: bottom;
+      max-width: 7.5em;
+      line-height: 1.25;
+    }
+    table.results thead tr:first-child th { border-top: 1.5px solid #363636; }
+    table.results th.group { border-bottom: 1px solid #b5b5b5; font-weight: 600; }
+    table.results td.method, table.results th.method { text-align: left; }
+    table.results tbody tr:last-child td { border-bottom: 1.5px solid #363636; }
+    table.results tr.sep td, table.results tr.sep th {
+      border-top: 1px solid #dbdbdb;
+    }
+    table.results tr.ours { background: #fff4e0; font-weight: 700; }
+    table.results tr.baseline-ref { color: #7a7a7a; font-style: italic; }
+    table.results tr.subhead td {
+      text-align: left;
+      font-style: italic;
+      font-weight: 600;
+      padding-top: 0.9em;
+      background: #fafafa;
+    }
+    table.results .ci { color: #8c8c8c; font-size: 0.82em; }
+    table.results .zero { color: #cc0f35; font-weight: 700; }
+    .table-caption {
+      font-size: 0.85rem;
+      color: #4a4a4a;
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+
+    /* --- result charts --- */
+    .chart-grid {
+      display: grid;
+      gap: 1rem;
+      margin: 0.75rem 0 1.25rem 0;
+    }
+    .chart-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chart-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 768px) {
+      .chart-grid.cols-2, .chart-grid.cols-3 { grid-template-columns: minmax(0, 1fr); }
+    }
+    .chart-card {
+      background: #ffffff;
+      border: 1px solid #e4e4e4;
+      border-radius: 8px;
+      padding: 0.85rem 0.75rem 0.5rem 0.75rem;
+      min-width: 0;
+    }
+    .chart-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0b0b0b;
+      text-align: center;
+      margin-bottom: 0.2rem;
+    }
+    .chart { display: block; width: 100%; height: auto; font-family: 'Noto Sans', sans-serif; }
+    .chart-group {
+      font-size: 0.95rem;
+      font-style: italic;
+      font-weight: 600;
+      color: #363636;
+      text-align: left;
+      margin: 1.5rem 0 0.25rem 0;
+    }
+    .chart-group code { font-style: normal; }
+    details.numbers {
+      margin: 0.25rem 0 0.5rem 0;
+      text-align: left;
+    }
+    details.numbers > summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #52514e;
+      padding: 0.3rem 0;
+      user-select: none;
+    }
+    details.numbers > summary:hover { color: #0b0b0b; }
+    details.numbers .table-wrap { margin-top: 0.5rem; }
+
+    /* --- video comparison grid --- */
+    .vid-grid video {
+      width: 100%;
+      border-radius: 6px;
+      background: #000;
+      display: block;
+    }
+    .vid-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+    .tag-sft   { color: #cc0f35; }
+    .tag-ours  { color: #b35c00; }
+    .task-name {
+      font-family: monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.6rem;
+      text-align: center;
+    }
+    .task-card {
+      border: 1px solid #e4e4e4;
+      border-radius: 8px;
+      padding: 0.9rem;
+      height: 100%;
+      background: #fff;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.08em 0.7em;
+      margin-left: 0.35rem;
+      vertical-align: middle;
+    }
+    .badge-pre { background: #e8f1fb; color: #1f5fa8; }
+    .badge-ft  { background: #fdefe3; color: #a85a00; }
+
+    .eqbox {
+      background: #fafafa;
+      border-left: 3px solid #b5b5b5;
+      padding: 0.6rem 1.1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+    .soon {
+      opacity: 0.55;
+      cursor: default !important;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="logo-left">
+  <a href="https://www.berkeley.edu/" target="_blank">
+    <img src="static/images/UC-Berkeley-Seal.png" alt="UC Berkeley" />
+  </a>
+</div>
+
+<div class="logo-right">
+  <a href="https://iconlab.negarmehr.com/" target="_blank">
+    <img src="static/images/ICON_Lab.png" alt="ICON Lab" />
+  </a>
+</div>
+
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">SAMBAR: Selective Anchoring via Method of Multipliers for Balanced Knowledge Acquisition and Retention in Vision-Language-Action Models</h1>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="https://sites.google.com/view/aayushishrivastava/home" target="_blank">Aayushi Shrivastava</a>,</span>
+            <span class="author-block"><a href="https://www.wyaaaattwho.xyz" target="_blank">Xunlan Zhou</a>,</span>
+            <span class="author-block"><a href="https://scholar.google.com/citations?user=4uQNsj8AAAAJ&hl=en" target="_blank">Hongrui Zhao</a>,</span>
+            <span class="author-block">Ziyu Chen,</span>
+            <span class="author-block"><a href="https://negarmehr.com/" target="_blank">Negar Mehr</a></span><br>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+
+              <!-- Paper -->
+              <span class="link-block">
+                <a class="external-link button is-normal is-rounded is-dark soon" title="Coming soon">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                  <span>Paper (Coming Soon)</span>
+                </a>
+              </span>
+
+              <!-- Code -->
+              <span class="link-block">
+                <a class="external-link button is-normal is-rounded is-dark soon" title="Coming soon">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code (Coming Soon)</span>
+                </a>
+              </span>
+
+              <!-- arXiv -->
+              <span class="link-block">
+                <a class="external-link button is-normal is-rounded is-dark soon" title="Coming soon">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv (Coming Soon)</span>
+                </a>
+              </span>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Teaser figure -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <img src="pictures/overview.png" alt="SAMBAR overview: importance-weighted anchoring vs. SFT across sequential finetuning" style="display:block; margin:auto; max-width:100%; height:auto;">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <div class="content has-text-justified">
+            An overview of <strong>SAMBAR</strong>: a replay-free continual learning algorithm that prevents catastrophic
+            forgetting during VLA finetuning <strong>without requiring access to the demonstrations of any previously
+            learned task</strong>. A policy learns tasks $T_1, T_2, T_3$ sequentially using only the current task's
+            demonstrations. <span style="color:#e07000;">Orange</span>, <span style="color:#3273dc;">blue</span>, and
+            <span style="color:#5c8727;">green</span> indicate parameter importance for $T_1$, $T_2$, and $T_3$, with
+            darker shades indicating greater importance. Standard supervised finetuning (SFT) overwrites parameters
+            important to earlier tasks, causing forgetting; SAMBAR limits changes to those parameters while allowing
+            new-task adaptation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Overview -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Overview</h2>
+        <div class="content has-text-justified">
+          <ul>
+            <li><strong>SAMBAR</strong> is a <strong>replay-free</strong> continual learning algorithm for Vision-Language-Action
+              (VLA) models. It lets a deployed policy learn new tasks one after another without ever revisiting the
+              demonstrations of the tasks it already knows.</li>
+            <li>We cast continual learning as a <strong>constrained optimization problem</strong> minimize the behavior
+              cloning loss on the new task, subject to the constraint that the policy parameters do not drift away from
+              their previous values and solve it with the <strong>method of multipliers</strong>.</li>
+            <li>Unlike a fixed regularization penalty, the method of multipliers accumulates the constraint violation in a
+              <strong>dual variable</strong>, so the price of violating the constraint <em>keeps rising</em> as long as the
+              policy is still drifting, rather than settling at a single compromise chosen before training.</li>
+            <li>We make the constraint <strong>selective</strong>: an importance-weighted anchor holds the parameters that
+              matter most to earlier tasks near their previous values, while leaving the rest free to move and acquire
+              the new task. This is what balances <strong>knowledge retention</strong> against <strong>knowledge acquisition</strong>.</li>
+            <li>After finetuning on three LIBERO tasks in sequence, <strong>every replay-free baseline falls to 0.0% on the
+              first task it was taught</strong>, while SAMBAR still performs it <strong>84.0%</strong> of the time and keeps
+              <strong>88.2%</strong> success on the pretraining tasks.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Challenge -->
+<section class="section hero is-small">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">The Challenge</h2>
+        <div class="content has-text-justified">
+          <p>
+            Picture this: you bring home a brand-new assistant robot running a VLA policy that effortlessly does laundry
+            and washes dishes. But then you decide you want it to clean your aquarium too. Lacking the massive data and
+            compute of its original pretraining, you simply finetune the VLA on a few demonstrations of aquarium
+            cleaning. Your robot ends up mastering the aquarium, only to <strong>completely forget how to wash
+            dishes</strong>. This is <em>continual learning</em> running into <em>catastrophic forgetting</em>.
+          </p>
+          <ul>
+            <li>Forgetting arises because the Supervised Finetuning (SFT) objective that teaches the new task
+              <strong>carries no term to protect the knowledge of the old ones</strong>.</li>
+            <li>The most common fix is <strong>replay</strong> &mdash; mixing demonstrations of earlier tasks into the new
+              task's training. But a deployed policy rarely has those demonstrations: the company never shipped the
+              laundry and dishwashing data with the robot. We therefore work in the <strong>replay-free</strong> setting.</li>
+            <li><strong>Regularization-based</strong> methods instead add a penalty pulling parameters toward their previous
+              values. But tuning that penalty is a single, up-front trade-off: set it high and the robot never learns to
+              clean the aquarium; set it low and it forgets how to wash dishes.</li>
+          </ul>
+          <p>
+            We thus ask: <strong>Can we develop a continual learning method that eliminates the need for previous training
+            data while balancing knowledge acquisition and retention?</strong>
+          </p>
+
+          <p style="margin-top:1.5rem;">
+            Formally, we model each task as a POMDP and learn a policy $\pi_\theta(a_t \mid o_t, T)$ mapping an
+            observation $o_t$ and a language task description $T$ to a distribution over actions. Starting from a model
+            pretrained on $m$ tasks, we finetune on $n$ new tasks <em>one at a time</em>, each starting from the optimal
+            parameters of the previous task. For task $T_i$ with demonstrations $\mathcal{D}_i$ we use the behavior
+            cloning objective
+          </p>
+          <div class="eqbox">
+            $$ L^{BC}(\theta; \mathcal{D}_i) \;=\; -\frac{1}{\sum_{j=1}^{N_i} H_j} \sum_{j=1}^{N_i} \sum_{t=1}^{H_j} \log \pi_\theta(a_t \mid o_t, T_i). $$
+          </div>
+          <p>
+            We assume <strong>no access</strong> to the demonstrations used to pretrain the model, nor to those of any task
+            the policy has already been finetuned on. The goal is a final policy that achieves a high success rate on
+            <strong>all $m + n$ tasks</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Key idea -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Our Key Idea</h2>
+        <div class="content has-text-justified">
+          <p>
+            Our key idea is to stop treating "don't forget" as a <em>penalty to be tuned</em> and start treating it as a
+            <strong>constraint to be satisfied</strong>. We write continual learning for task $T_i$ as
+          </p>
+          <div class="eqbox">
+            $$ \min_{\theta_i} \; L^{BC}(\theta_i; \mathcal{D}_i) \quad \text{s.t.} \quad \theta_i = \theta^*_{i-1}, $$
+          </div>
+          <p>
+            where $\theta^*_{i-1}$ are the parameters that perform well on the $m$ pretraining tasks together with the
+            $i-1$ finetuning tasks completed so far. We solve this with the <strong>method of multipliers</strong>, which
+            forms the augmented Lagrangian and alternates a primal update with a <strong>dual ascent</strong> step:
+          </p>
+          <div class="eqbox">
+            $$ \theta_i^k = \arg\min_{\theta_i} \; L^{BC}(\theta_i; \mathcal{D}_i) + (\theta_i - \theta^*_{i-1})' u^{k-1} + \tfrac{\rho}{2}\|\theta_i - \theta^*_{i-1}\|^2, $$
+            $$ u^k = u^{k-1} + \rho\,(\theta_i^k - \theta^*_{i-1}). $$
+          </div>
+          <p>
+            The dual variable $u$ <strong>accumulates the violation across iterations</strong> and feeds it back into the
+            primal objective, so the longer a violation persists, the more it costs. A fixed penalty has no such memory
+            and settles at a compromise; here the price keeps rising until the constraint is satisfied. The penalty is
+            therefore <strong>dynamic rather than static</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Approach -->
+<section class="section hero is-small">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Our Approach</h2>
+        <div class="content has-text-justified">
+          <p>
+            The constraint above treats every parameter alike, which makes it <strong>too rigid</strong>: as we show in our
+            ablation (<em>SAMBAR w/o importance</em>), the model does not forget the previous task, but it also cannot
+            learn the new one. To relax it, we <strong>selectively anchor</strong> only the parameters that matter to the
+            earlier tasks, and leave the rest free to move.
+          </p>
+          <p>
+            We replace the constraint $\theta_i = \theta^*_{i-1}$ with an <strong>importance-weighted anchor</strong>
+            $z$ &mdash; an average of the current parameters $\theta_i$ and the previous ones $\theta^*_{i-1}$, weighted
+            by how important each parameter is to each set of tasks:
+          </p>
+          <div class="eqbox">
+            $$ z^k := (\Omega_i + \bar{\Omega}_{i-1})^{-1} (\Omega_i \theta_i^k + \bar{\Omega}_{i-1}\theta^*_{i-1}), $$
+          </div>
+          <ul>
+            <li>$\bar{\Omega}_{i-1}$ is a diagonal matrix holding one value per parameter measuring its importance to
+              <strong>all $m$ pretraining tasks and $i-1$ finetuning tasks</strong> the policy has already learned.</li>
+            <li>$\Omega_i$ measures the importance of each parameter to the <strong>new task</strong> $T_i$.</li>
+            <li>A parameter that matters far more to the prior tasks than to the new one is pulled almost entirely toward
+              $\theta^*_{i-1}$, and <strong>the constraint holds it in place</strong>. A parameter that matters mainly to
+              the new task is pulled toward its own current value $\theta_i^k$, so the constraint <strong>does not drag it
+              back</strong>.</li>
+          </ul>
+          <p>
+            We estimate importance by the mean squared gradient of the task loss over the $N_B$ samples in a batch &mdash;
+            the diagonal of the empirical Fisher Information Matrix, the same quantity EWC uses. We use only the diagonal
+            because it is easily batched and is far more compute- and memory-efficient:
+          </p>
+          <div class="eqbox">
+            $$ \Omega_i = \mathrm{diag}\Big( \tfrac{1}{N_B}\sum_{j=1}^{N_B} \big(\nabla_{\theta_i} L^{BC}(\theta_i; b_j)\big)\big(\nabla_{\theta_i} L^{BC}(\theta_i; b_j)\big)' \Big). $$
+          </div>
+          <p>
+            Putting the anchor into the method of multipliers gives <strong>SAMBAR</strong>. At optimization step $k$, the
+            primal, dual, and anchor updates are:
+          </p>
+          <div class="eqbox">
+            $$ \theta_i^k = \arg\min_{\theta_i} \; L^{BC}(\theta_i; \mathcal{D}_i) + (\theta_i - z^{k-1})' u^{k-1} + \tfrac{\rho}{2}\|\theta_i - z^{k-1}\|^2 $$
+            $$ u^k = u^{k-1} + \rho\,(\theta_i^k - z^{k-1}) $$
+            $$ z^k = (\Omega_i + \bar{\Omega}_{i-1})^{-1}(\Omega_i \theta_i^k + \bar{\Omega}_{i-1}\theta^*_{i-1}) $$
+          </div>
+          <p>
+            Once finetuning on $T_i$ finishes, <strong>$T_i$ itself becomes a task the policy must not forget</strong>. We
+            fold its importance into the old tasks' importance matrix, weighting each term by the number of tasks it
+            covers, $\;\bar{\Omega}_i := \big((m+i-1)\,\bar{\Omega}_{i-1} + \Omega_i\big)/(m+i)$. Repeating this at every
+            task is what lets SAMBAR keep learning sequentially. Note that we <strong>never recompute</strong>
+            $\bar{\Omega}_{i-1}$ from earlier data &mdash; we only need a single importance matrix $\bar{\Omega}_0$
+            released with the pretrained model. This costs <strong>one matrix of fixed size</strong>, regardless of how many
+            tasks the policy learns, and is far cheaper to store and distribute than the pretraining demonstrations.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Simulation -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Simulation Experiments</h2>
+        <div class="content has-text-justified">
+          <p>
+            We evaluate on <strong>LIBERO</strong>, a benchmark for knowledge transfer in multitask and lifelong robot
+            learning. We use <strong>$\pi_{0.5}$</strong> as our base pretrained policy. Since it cannot perform LIBERO
+            tasks out of the box, we first pretrain it on a set of in-environment tasks, which grounds the policy and
+            gives us a set of tasks against which we can measure forgetting. We study three settings:
+          </p>
+          <ul>
+            <li><strong>Broadly pretrained</strong> &mdash; pretrain on <strong>117</strong> tasks, then finetune on a single
+              LIBERO-Long task.</li>
+            <li><strong>Narrowly pretrained</strong> &mdash; pretrain on <strong>32</strong> tasks, then finetune on a single
+              task. Comparing the two isolates the effect of pretraining breadth on forgetting.</li>
+            <li><strong>Sequential continual learning</strong> &mdash; pretrain on 32 tasks, then finetune on
+              <strong>three tasks in turn</strong>. This is closest to practice, where a deployed policy must keep learning.</li>
+          </ul>
+          <p>
+            We compare against replay-free baselines &mdash; <strong>SFT</strong>, <strong>RETAIN</strong> (weight
+            interpolation, $\alpha = 0.9$), <strong>LoRA</strong>, <strong>EWC</strong>, <strong>L2</strong>, and
+            <strong>Simple Recipe Works</strong> &mdash; plus the ablation <strong>SAMBAR w/o importance</strong>.
+            Two further references appear in the tables for context but are left out of the charts: the un-finetuned
+            <strong>Pretrained</strong> model, and <strong>Co-Training</strong>, which replays the earlier tasks'
+            demonstrations and so is not a replay-free method.
+          </p>
+          <p>We report three success rates:</p>
+          <ul>
+            <li><strong>Pretrain SR</strong> &mdash; success over all pretraining tasks; measures <em>retention</em>.</li>
+            <li><strong>Finetune SR</strong> &mdash; success on the finetuning task; measures <em>acquisition</em>.</li>
+            <li><strong>Weighted Avg SR</strong> &mdash; the task-count-weighted mean, i.e. the mean success a user would
+              actually see across every task the policy is expected to perform.</li>
+          </ul>
+          <p>
+            All numbers are percentages averaged over 5 seeds (5 episodes/seed for the broadly pretrained regime,
+            10 episodes/seed for the narrowly pretrained regime), reported with a 95% confidence interval.
+          </p>
+        </div>
+
+        <h4 class="title is-5" style="margin-top:2rem;">The three tasks we learn in sequence</h4>
+        <div class="columns is-centered" style="margin-top: 0.5rem;">
+          <div class="column is-one-third has-text-centered">
+            <img src="pictures/libero_pot_on_stove.png" alt="pot-on-stove initial scene" style="max-height:230px; margin:auto; border-radius:6px;">
+            <div class="task-name" style="margin-top:0.5rem;">pot-on-stove <span class="badge badge-ft">$T_1$</span></div>
+            <div style="font-size:0.85rem; color:#4a4a4a;">"turn on the stove and put the moka pot on it"</div>
+          </div>
+          <div class="column is-one-third has-text-centered">
+            <img src="pictures/libero_bowl_in_drawer.png" alt="bowl-in-drawer initial scene" style="max-height:230px; margin:auto; border-radius:6px;">
+            <div class="task-name" style="margin-top:0.5rem;">bowl-in-drawer <span class="badge badge-ft">$T_2$</span></div>
+            <div style="font-size:0.85rem; color:#4a4a4a;">"put the black bowl in the bottom drawer of the cabinet and close it"</div>
+          </div>
+          <div class="column is-one-third has-text-centered">
+            <img src="pictures/libero_bottle_on_rack.png" alt="bottle-on-rack initial scene" style="max-height:230px; margin:auto; border-radius:6px;">
+            <div class="task-name" style="margin-top:0.5rem;">bottle-on-rack <span class="badge badge-ft">$T_3$</span></div>
+            <div style="font-size:0.85rem; color:#4a4a4a;">"put the wine bottle on the rack"</div>
+          </div>
+        </div>
+        <div class="table-caption has-text-centered" style="text-align:center;">
+          Starting from a policy pretrained on 32 LIBERO tasks, we finetune on <code>pot-on-stove</code>, then
+          <code>bowl-in-drawer</code>, then <code>bottle-on-rack</code>, in the order shown. The first two are
+          long-horizon tasks; the third is a goal task.
+        </div>
+
+        <h4 class="title is-5" style="margin-top:2rem;">SAMBAR after learning all three tasks</h4>
+        <div class="content has-text-justified" style="margin-bottom:1rem;">
+          A single SAMBAR policy, evaluated after it has finetuned on all three tasks in sequence, still performs
+          <strong>every one of them</strong>:
+        </div>
+        <div class="columns is-centered vid-grid">
+          <div class="column is-one-third has-text-centered">
+            <div class="task-name">pot-on-stove ($T_1$)</div>
+            <video autoplay loop muted playsinline><source src="videos/sim_pot_on_stove.mp4" type="video/mp4"></video>
+          </div>
+          <div class="column is-one-third has-text-centered">
+            <div class="task-name">bowl-in-drawer ($T_2$)</div>
+            <video autoplay loop muted playsinline><source src="videos/sim_bowl_in_drawer.mp4" type="video/mp4"></video>
+          </div>
+          <div class="column is-one-third has-text-centered">
+            <div class="task-name">bottle-on-rack ($T_3$)</div>
+            <video autoplay loop muted playsinline><source src="videos/sim_bottle_on_rack.mp4" type="video/mp4"></video>
+          </div>
+        </div>
+        <div class="table-caption has-text-centered" style="text-align:center;">
+          Rollouts of the final SAMBAR policy, played at 2&times; speed.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Sequential results table -->
+<section class="section hero is-small">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Sequential Continual Learning</h2>
+        <div class="content has-text-justified">
+          <p>
+            This is the setting the paper is really about. Starting from the policy pretrained on 32 tasks, we finetune
+            on <code>pot-on-stove</code>, then <code>bowl-in-drawer</code>, then <code>bottle-on-rack</code>, and
+            evaluate <em>after all three</em>.
+          </p>
+          <p>
+            <strong>Every baseline succeeds on <code>pot-on-stove</code> exactly 0.0% of the time</strong> &mdash; all of
+            them have completely forgotten the first task they learned, while still performing the most recent task
+            well. SAMBAR is the only method that strikes the balance: it still performs <code>pot-on-stove</code> 84.0%
+            of the time and <code>bowl-in-drawer</code> 70.0% of the time after learning a third task on top of them,
+            while retaining 88.2% on the pretraining tasks and learning <code>bottle-on-rack</code> at 82.0%. The
+            ablation without importance weighting retains the most of any method (89.8%) but <strong>learns almost
+            nothing</strong>, ending at 0.0% on the first two tasks and 4.0% on the third.
+          </p>
+        </div>
+
+        <div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="seq0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="seq0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="63.11" y="234.33" width="28.28" height="29.67" fill="#a6a6a6"/><text x="77.2" y="229.3" text-anchor="middle" font-size="11" fill="#1a1a1a">12.9</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="223.98" width="28.28" height="40.02" fill="#c2b280"/><text x="127.8" y="219.0" text-anchor="middle" font-size="11" fill="#1a1a1a">17.4</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="159.58" width="28.28" height="104.42" fill="#cbbeae"/><text x="178.2" y="154.6" text-anchor="middle" font-size="11" fill="#1a1a1a">45.4</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><text x="228.8" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="129.91" width="28.28" height="134.09" fill="#d5c7b9"/><text x="279.2" y="124.9" text-anchor="middle" font-size="11" fill="#1a1a1a">58.3</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="161.88" width="28.28" height="102.12" fill="#a6a6a6"/><text x="329.8" y="156.9" text-anchor="middle" font-size="11" fill="#1a1a1a">44.4</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="57.46" width="28.28" height="206.54" fill="#c2b280"/><text x="380.2" y="52.5" text-anchor="middle" font-size="11" fill="#1a1a1a">89.8</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="61.14" width="28.28" height="202.86" fill="#ffa500"/><text x="430.8" y="56.1" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">88.2</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="seq1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="seq1-t">pot-on-stove</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">pot-on-stove</text><text x="77.2" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><text x="127.8" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><text x="178.2" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><text x="228.8" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><text x="279.2" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><text x="329.8" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><text x="380.2" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="70.80" width="28.28" height="193.20" fill="#ffa500"/><text x="430.8" y="65.8" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">84</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="seq2-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="seq2-t">bowl-in-drawer</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">bowl-in-drawer</text><rect x="63.11" y="126.00" width="28.28" height="138.00" fill="#a6a6a6"/><text x="77.2" y="121.0" text-anchor="middle" font-size="11" fill="#1a1a1a">60</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="107.60" width="28.28" height="156.40" fill="#c2b280"/><text x="127.8" y="102.6" text-anchor="middle" font-size="11" fill="#1a1a1a">68</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="222.60" width="28.28" height="41.40" fill="#cbbeae"/><text x="178.2" y="217.6" text-anchor="middle" font-size="11" fill="#1a1a1a">18</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><text x="228.8" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="167.40" width="28.28" height="96.60" fill="#d5c7b9"/><text x="279.2" y="162.4" text-anchor="middle" font-size="11" fill="#1a1a1a">42</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="181.20" width="28.28" height="82.80" fill="#a6a6a6"/><text x="329.8" y="176.2" text-anchor="middle" font-size="11" fill="#1a1a1a">36</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><text x="380.2" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="103.00" width="28.28" height="161.00" fill="#ffa500"/><text x="430.8" y="98.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">70</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="seq3-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="seq3-t">bottle-on-rack</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">bottle-on-rack</text><rect x="63.11" y="70.80" width="28.28" height="193.20" fill="#a6a6a6"/><text x="77.2" y="65.8" text-anchor="middle" font-size="11" fill="#1a1a1a">84</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="43.20" width="28.28" height="220.80" fill="#c2b280"/><text x="127.8" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="52.40" width="28.28" height="211.60" fill="#cbbeae"/><text x="178.2" y="47.4" text-anchor="middle" font-size="11" fill="#1a1a1a">92</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="214.61" y="34.00" width="28.28" height="230.00" fill="#b3b3b3"/><text x="228.8" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="80.00" width="28.28" height="184.00" fill="#d5c7b9"/><text x="279.2" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="57.00" width="28.28" height="207.00" fill="#a6a6a6"/><text x="329.8" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="254.80" width="28.28" height="9.20" fill="#c2b280"/><text x="380.2" y="249.8" text-anchor="middle" font-size="11" fill="#1a1a1a">4</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="75.40" width="28.28" height="188.60" fill="#ffa500"/><text x="430.8" y="70.4" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">82</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <details class="numbers">
+          <summary>Show the exact numbers</summary>
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th class="method" rowspan="2">Method</th>
+                <th rowspan="2">Pretrain SR &uarr;</th>
+                <th class="group" colspan="3">Success on each newly learned task &uarr;</th>
+                <th rowspan="2">Weighted Avg SR &uarr;</th>
+              </tr>
+              <tr>
+                <th>pot-on-stove</th>
+                <th>bowl-in-drawer</th>
+                <th>bottle-on-rack</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="baseline-ref"><td class="method">Co-Training</td><td>95.4 <span class="ci">±1.0</span></td><td>100.0 <span class="ci">±0.0</span></td><td>98.0 <span class="ci">±5.6</span></td><td>88.0 <span class="ci">±13.6</span></td><td>95.4</td></tr>
+              <tr><td class="method">SFT</td><td>12.9 <span class="ci">±1.9</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>60.0 <span class="ci">±21.5</span></td><td>84.0 <span class="ci">±11.1</span></td><td>15.9</td></tr>
+              <tr><td class="method">RETAIN</td><td>17.4 <span class="ci">±0.7</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>68.0 <span class="ci">±16.2</span></td><td>96.0 <span class="ci">±6.8</span></td><td>20.6</td></tr>
+              <tr><td class="method">LoRA</td><td>45.4 <span class="ci">±1.3</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>18.0 <span class="ci">±13.6</span></td><td>92.0 <span class="ci">±10.4</span></td><td>44.6</td></tr>
+              <tr><td class="method">EWC</td><td>0.0 <span class="ci">±0.0</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>100.0 <span class="ci">±0.0</span></td><td>2.9</td></tr>
+              <tr><td class="method">L2</td><td>58.3 <span class="ci">±2.6</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>42.0 <span class="ci">±34.5</span></td><td>80.0 <span class="ci">±24.8</span></td><td>56.7</td></tr>
+              <tr><td class="method">Simple Recipe Works</td><td>44.4 <span class="ci">±3.2</span></td><td><span class="zero">0.0 <span class="ci">±0.0</span></span></td><td>36.0 <span class="ci">±14.2</span></td><td>90.0 <span class="ci">±8.8</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>89.8 <span class="ci">±0.8</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td class="zero">0.0 <span class="ci">±0.0</span></td><td>4.0 <span class="ci">±6.8</span></td><td>82.2</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>88.2 <span class="ci">±2.3</span></td><td>84.0 <span class="ci">±6.8</span></td><td>70.0 <span class="ci">±15.2</span></td><td>82.0 <span class="ci">±16.2</span></td><td>87.4</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </details>
+        <div class="table-caption">
+          <strong>Sequential continual learning on LIBERO.</strong> Success rates in percent, averaged over 5 seeds with
+          10 episodes/seed, reported as mean ± 95% confidence interval; higher is better (&uarr;) everywhere.
+          Weighted Avg SR is the task-count-weighted mean over all 35 tasks.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Single-task tables -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Single-Task Finetuning</h2>
+        <div class="content has-text-justified">
+          <p>
+            Single-task finetuning is the precondition for sequential learning: a method that already forgets after one
+            task cannot learn more tasks in sequence. <strong>Pretraining breadth matters a great deal.</strong> From a
+            broadly pretrained policy (117 tasks) the policy is general enough that forgetting is mild and most methods
+            do fine &mdash; though SAMBAR still has the highest Weighted Avg SR on two of the three tasks. From a
+            <strong>narrowly pretrained policy (32 tasks), forgetting becomes severe</strong>: every baseline drops below
+            80% Pretrain SR on both tasks, while <strong>SAMBAR is the only method to stay around 90%</strong> and still
+            learn the new task.
+          </p>
+        </div>
+
+        <h4 class="title is-5" style="margin-top:1.5rem;">Narrowly pretrained (32 tasks)</h4>
+                <h5 class="chart-group">Finetune task: <code>pot-on-stove</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="narrow_pot_on_stove0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="narrow_pot_on_stove0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="63.11" y="134.97" width="28.28" height="129.03" fill="#a6a6a6"/><text x="77.2" y="130.0" text-anchor="middle" font-size="11" fill="#1a1a1a">56.1</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="111.05" width="28.28" height="152.95" fill="#c2b280"/><text x="127.8" y="106.0" text-anchor="middle" font-size="11" fill="#1a1a1a">66.5</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="90.58" width="28.28" height="173.42" fill="#cbbeae"/><text x="178.2" y="85.6" text-anchor="middle" font-size="11" fill="#1a1a1a">75.4</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="214.61" y="155.67" width="28.28" height="108.33" fill="#b3b3b3"/><text x="228.8" y="150.7" text-anchor="middle" font-size="11" fill="#1a1a1a">47.1</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="99.55" width="28.28" height="164.45" fill="#d5c7b9"/><text x="279.2" y="94.6" text-anchor="middle" font-size="11" fill="#1a1a1a">71.5</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="70.80" width="28.28" height="193.20" fill="#a6a6a6"/><text x="329.8" y="65.8" text-anchor="middle" font-size="11" fill="#1a1a1a">84</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="52.86" width="28.28" height="211.14" fill="#c2b280"/><text x="380.2" y="47.9" text-anchor="middle" font-size="11" fill="#1a1a1a">91.8</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="57.69" width="28.28" height="206.31" fill="#ffa500"/><text x="430.8" y="52.7" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">89.7</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="narrow_pot_on_stove1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="narrow_pot_on_stove1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="63.11" y="43.20" width="28.28" height="220.80" fill="#a6a6a6"/><text x="77.2" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="47.80" width="28.28" height="216.20" fill="#c2b280"/><text x="127.8" y="42.8" text-anchor="middle" font-size="11" fill="#1a1a1a">94</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="34.00" width="28.28" height="230.00" fill="#cbbeae"/><text x="178.2" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="214.61" y="43.20" width="28.28" height="220.80" fill="#b3b3b3"/><text x="228.8" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="93.80" width="28.28" height="170.20" fill="#d5c7b9"/><text x="279.2" y="88.8" text-anchor="middle" font-size="11" fill="#1a1a1a">74</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="66.20" width="28.28" height="197.80" fill="#a6a6a6"/><text x="329.8" y="61.2" text-anchor="middle" font-size="11" fill="#1a1a1a">86</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="254.80" width="28.28" height="9.20" fill="#c2b280"/><text x="380.2" y="249.8" text-anchor="middle" font-size="11" fill="#1a1a1a">4</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="66.20" width="28.28" height="197.80" fill="#ffa500"/><text x="430.8" y="61.2" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">86</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <h5 class="chart-group">Finetune task: <code>bowl-in-drawer</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="narrow_bowl_in_drawer0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="narrow_bowl_in_drawer0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="63.11" y="210.87" width="28.28" height="53.13" fill="#a6a6a6"/><text x="77.2" y="205.9" text-anchor="middle" font-size="11" fill="#1a1a1a">23.1</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="200.98" width="28.28" height="63.02" fill="#c2b280"/><text x="127.8" y="196.0" text-anchor="middle" font-size="11" fill="#1a1a1a">27.4</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="93.80" width="28.28" height="170.20" fill="#cbbeae"/><text x="178.2" y="88.8" text-anchor="middle" font-size="11" fill="#1a1a1a">74</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="214.61" y="218.92" width="28.28" height="45.08" fill="#b3b3b3"/><text x="228.8" y="213.9" text-anchor="middle" font-size="11" fill="#1a1a1a">19.6</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="114.73" width="28.28" height="149.27" fill="#d5c7b9"/><text x="279.2" y="109.7" text-anchor="middle" font-size="11" fill="#1a1a1a">64.9</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="93.57" width="28.28" height="170.43" fill="#a6a6a6"/><text x="329.8" y="88.6" text-anchor="middle" font-size="11" fill="#1a1a1a">74.1</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="55.62" width="28.28" height="208.38" fill="#c2b280"/><text x="380.2" y="50.6" text-anchor="middle" font-size="11" fill="#1a1a1a">90.6</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="52.86" width="28.28" height="211.14" fill="#ffa500"/><text x="430.8" y="47.9" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">91.8</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="narrow_bowl_in_drawer1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="narrow_bowl_in_drawer1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="63.11" y="34.00" width="28.28" height="230.00" fill="#a6a6a6"/><text x="77.2" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="77.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="113.61" y="43.20" width="28.28" height="220.80" fill="#c2b280"/><text x="127.8" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="127.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="164.11" y="34.00" width="28.28" height="230.00" fill="#cbbeae"/><text x="178.2" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="178.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="214.61" y="57.00" width="28.28" height="207.00" fill="#b3b3b3"/><text x="228.8" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="228.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="265.11" y="84.60" width="28.28" height="179.40" fill="#d5c7b9"/><text x="279.2" y="79.6" text-anchor="middle" font-size="11" fill="#1a1a1a">78</text><text x="279.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="315.61" y="52.40" width="28.28" height="211.60" fill="#a6a6a6"/><text x="329.8" y="47.4" text-anchor="middle" font-size="11" fill="#1a1a1a">92</text><text x="329.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Simple</text><text x="329.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Recipe</text><rect x="366.11" y="176.60" width="28.28" height="87.40" fill="#c2b280"/><text x="380.2" y="171.6" text-anchor="middle" font-size="11" fill="#1a1a1a">38</text><text x="380.2" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="380.2" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="416.61" y="43.20" width="28.28" height="220.80" fill="#ffa500"/><text x="430.8" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">96</text><text x="430.8" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="430.8" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <details class="numbers">
+          <summary>Show the exact numbers</summary>
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr><th class="method">Method</th><th>Pretrain SR &uarr;</th><th>Finetune SR &uarr;</th><th>Weighted Avg SR &uarr;</th></tr>
+            </thead>
+            <tbody>
+              <tr class="subhead"><td colspan="4">Finetune task: pot-on-stove</td></tr>
+              <tr class="baseline-ref"><td class="method">Pretrained (no finetuning)</td><td>93.9 <span class="ci">±1.4</span></td><td>6.0 <span class="ci">±16.7</span></td><td>&ndash;</td></tr>
+<tr class="baseline-ref"><td class="method">Co-Training</td><td>93.8 <span class="ci">±1.3</span></td><td>94.0 <span class="ci">±6.8</span></td><td>93.8</td></tr>
+              <tr><td class="method">SFT</td><td>56.1 <span class="ci">±2.6</span></td><td>96.0 <span class="ci">±6.8</span></td><td>57.3</td></tr>
+              <tr><td class="method">RETAIN</td><td>66.5 <span class="ci">±2.1</span></td><td>94.0 <span class="ci">±11.1</span></td><td>67.3</td></tr>
+              <tr><td class="method">LoRA</td><td>75.4 <span class="ci">±1.8</span></td><td>100.0 <span class="ci">±0.0</span></td><td>76.2</td></tr>
+              <tr><td class="method">EWC</td><td>47.1 <span class="ci">±1.4</span></td><td>96.0 <span class="ci">±11.1</span></td><td>48.6</td></tr>
+              <tr><td class="method">L2</td><td>71.5 <span class="ci">±2.2</span></td><td>74.0 <span class="ci">±16.7</span></td><td>71.6</td></tr>
+              <tr><td class="method">Simple Recipe Works</td><td>84.0 <span class="ci">±1.3</span></td><td>86.0 <span class="ci">±16.7</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>91.8 <span class="ci">±1.4</span></td><td class="zero">4.0 <span class="ci">±6.8</span></td><td>89.1</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>89.7 <span class="ci">±1.7</span></td><td>86.0 <span class="ci">±18.8</span></td><td>89.6</td></tr>
+
+              <tr class="subhead"><td colspan="4">Finetune task: bowl-in-drawer</td></tr>
+              <tr class="baseline-ref"><td class="method">Pretrained (no finetuning)</td><td>93.9 <span class="ci">±1.4</span></td><td>0.0 <span class="ci">±0.0</span></td><td>&ndash;</td></tr>
+<tr class="baseline-ref"><td class="method">Co-Training</td><td>93.1 <span class="ci">±1.7</span></td><td>100.0 <span class="ci">±0.0</span></td><td>93.3</td></tr>
+              <tr><td class="method">SFT</td><td>23.1 <span class="ci">±1.4</span></td><td>100.0 <span class="ci">±0.0</span></td><td>25.4</td></tr>
+              <tr><td class="method">RETAIN</td><td>27.4 <span class="ci">±1.8</span></td><td>96.0 <span class="ci">±6.8</span></td><td>29.5</td></tr>
+              <tr><td class="method">LoRA</td><td>74.0 <span class="ci">±3.0</span></td><td>100.0 <span class="ci">±0.0</span></td><td>74.8</td></tr>
+              <tr><td class="method">EWC</td><td>19.6 <span class="ci">±0.9</span></td><td>90.0 <span class="ci">±12.4</span></td><td>21.7</td></tr>
+              <tr><td class="method">L2</td><td>64.9 <span class="ci">±2.3</span></td><td>78.0 <span class="ci">±16.2</span></td><td>65.3</td></tr>
+              <tr><td class="method">Simple Recipe Works</td><td>74.1 <span class="ci">±1.2</span></td><td>92.0 <span class="ci">±10.4</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>90.6 <span class="ci">±1.9</span></td><td>38.0 <span class="ci">±30.9</span></td><td>89.0</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>91.8 <span class="ci">±1.2</span></td><td>96.0 <span class="ci">±6.8</span></td><td>91.9</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </details>
+        <div class="table-caption">
+          <strong>Learning one new task from a narrowly pretrained policy.</strong> $\pi_{0.5}$ pretrained on 32 LIBERO
+          tasks (8 from each suite), finetuned on two LIBERO-Long tasks. 5 seeds &times; 10 episodes/seed, mean ± 95% CI.
+          Weighted Avg SR is over all 33 tasks. Forgetting is severe here: every baseline forgets the pretraining tasks,
+          whereas SAMBAR remembers them.
+        </div>
+
+        <h4 class="title is-5" style="margin-top:2rem;">Broadly pretrained (117 tasks)</h4>
+                <h5 class="chart-group">Finetune task: <code>pot-on-stove</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_pot_on_stove0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_pot_on_stove0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="64.70" y="59.30" width="32.32" height="204.70" fill="#a6a6a6"/><text x="80.9" y="54.3" text-anchor="middle" font-size="11" fill="#1a1a1a">89</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="57.69" width="32.32" height="206.31" fill="#c2b280"/><text x="138.6" y="52.7" text-anchor="middle" font-size="11" fill="#1a1a1a">89.7</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="61.37" width="32.32" height="202.63" fill="#cbbeae"/><text x="196.3" y="56.4" text-anchor="middle" font-size="11" fill="#1a1a1a">88.1</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="58.15" width="32.32" height="205.85" fill="#b3b3b3"/><text x="254.0" y="53.1" text-anchor="middle" font-size="11" fill="#1a1a1a">89.5</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="68.96" width="32.32" height="195.04" fill="#d5c7b9"/><text x="311.7" y="64.0" text-anchor="middle" font-size="11" fill="#1a1a1a">84.8</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="57.69" width="32.32" height="206.31" fill="#a6a6a6"/><text x="369.4" y="52.7" text-anchor="middle" font-size="11" fill="#1a1a1a">89.7</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="52.63" width="32.32" height="211.37" fill="#ffa500"/><text x="427.1" y="47.6" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">91.9</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_pot_on_stove1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_pot_on_stove1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="64.70" y="34.00" width="32.32" height="230.00" fill="#a6a6a6"/><text x="80.9" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="34.00" width="32.32" height="230.00" fill="#c2b280"/><text x="138.6" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="34.00" width="32.32" height="230.00" fill="#cbbeae"/><text x="196.3" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="34.00" width="32.32" height="230.00" fill="#b3b3b3"/><text x="254.0" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="70.80" width="32.32" height="193.20" fill="#d5c7b9"/><text x="311.7" y="65.8" text-anchor="middle" font-size="11" fill="#1a1a1a">84</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="135.20" width="32.32" height="128.80" fill="#a6a6a6"/><text x="369.4" y="130.2" text-anchor="middle" font-size="11" fill="#1a1a1a">56</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="52.40" width="32.32" height="211.60" fill="#ffa500"/><text x="427.1" y="47.4" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">92</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <h5 class="chart-group">Finetune task: <code>items-into-basket</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_items_into_basket0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_items_into_basket0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="64.70" y="49.64" width="32.32" height="214.36" fill="#a6a6a6"/><text x="80.9" y="44.6" text-anchor="middle" font-size="11" fill="#1a1a1a">93.2</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="49.41" width="32.32" height="214.59" fill="#c2b280"/><text x="138.6" y="44.4" text-anchor="middle" font-size="11" fill="#1a1a1a">93.3</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="49.18" width="32.32" height="214.82" fill="#cbbeae"/><text x="196.3" y="44.2" text-anchor="middle" font-size="11" fill="#1a1a1a">93.4</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="48.95" width="32.32" height="215.05" fill="#b3b3b3"/><text x="254.0" y="43.9" text-anchor="middle" font-size="11" fill="#1a1a1a">93.5</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="48.26" width="32.32" height="215.74" fill="#d5c7b9"/><text x="311.7" y="43.3" text-anchor="middle" font-size="11" fill="#1a1a1a">93.8</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="47.11" width="32.32" height="216.89" fill="#a6a6a6"/><text x="369.4" y="42.1" text-anchor="middle" font-size="11" fill="#1a1a1a">94.3</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="47.11" width="32.32" height="216.89" fill="#ffa500"/><text x="427.1" y="42.1" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">94.3</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_items_into_basket1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_items_into_basket1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="64.70" y="34.00" width="32.32" height="230.00" fill="#a6a6a6"/><text x="80.9" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="43.20" width="32.32" height="220.80" fill="#c2b280"/><text x="138.6" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="34.00" width="32.32" height="230.00" fill="#cbbeae"/><text x="196.3" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="34.00" width="32.32" height="230.00" fill="#b3b3b3"/><text x="254.0" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="52.40" width="32.32" height="211.60" fill="#d5c7b9"/><text x="311.7" y="47.4" text-anchor="middle" font-size="11" fill="#1a1a1a">92</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="181.20" width="32.32" height="82.80" fill="#a6a6a6"/><text x="369.4" y="176.2" text-anchor="middle" font-size="11" fill="#1a1a1a">36</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="34.00" width="32.32" height="230.00" fill="#ffa500"/><text x="427.1" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">100</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <h5 class="chart-group">Finetune task: <code>mugs-on-plates</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_mugs_on_plates0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_mugs_on_plates0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="64.70" y="78.39" width="32.32" height="185.61" fill="#a6a6a6"/><text x="80.9" y="73.4" text-anchor="middle" font-size="11" fill="#1a1a1a">80.7</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="67.58" width="32.32" height="196.42" fill="#c2b280"/><text x="138.6" y="62.6" text-anchor="middle" font-size="11" fill="#1a1a1a">85.4</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="52.63" width="32.32" height="211.37" fill="#cbbeae"/><text x="196.3" y="47.6" text-anchor="middle" font-size="11" fill="#1a1a1a">91.9</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="82.76" width="32.32" height="181.24" fill="#b3b3b3"/><text x="254.0" y="77.8" text-anchor="middle" font-size="11" fill="#1a1a1a">78.8</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="65.97" width="32.32" height="198.03" fill="#d5c7b9"/><text x="311.7" y="61.0" text-anchor="middle" font-size="11" fill="#1a1a1a">86.1</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="49.64" width="32.32" height="214.36" fill="#a6a6a6"/><text x="369.4" y="44.6" text-anchor="middle" font-size="11" fill="#1a1a1a">93.2</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="55.39" width="32.32" height="208.61" fill="#ffa500"/><text x="427.1" y="50.4" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">90.7</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="broad_mugs_on_plates1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="broad_mugs_on_plates1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="64.70" y="43.20" width="32.32" height="220.80" fill="#a6a6a6"/><text x="80.9" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="80.9" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="122.41" y="61.60" width="32.32" height="202.40" fill="#c2b280"/><text x="138.6" y="56.6" text-anchor="middle" font-size="11" fill="#1a1a1a">88</text><text x="138.6" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="180.13" y="34.00" width="32.32" height="230.00" fill="#cbbeae"/><text x="196.3" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="196.3" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">LoRA</text><rect x="237.84" y="43.20" width="32.32" height="220.80" fill="#b3b3b3"/><text x="254.0" y="38.2" text-anchor="middle" font-size="11" fill="#1a1a1a">96</text><text x="254.0" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="295.55" y="80.00" width="32.32" height="184.00" fill="#d5c7b9"/><text x="311.7" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="311.7" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">L2</text><rect x="353.27" y="89.20" width="32.32" height="174.80" fill="#a6a6a6"/><text x="369.4" y="84.2" text-anchor="middle" font-size="11" fill="#1a1a1a">76</text><text x="369.4" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SAMBAR</text><text x="369.4" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">w/o imp.</text><rect x="410.98" y="52.40" width="32.32" height="211.60" fill="#ffa500"/><text x="427.1" y="47.4" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">92</text><text x="427.1" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="427.1" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <details class="numbers">
+          <summary>Show the exact numbers</summary>
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr><th class="method">Method</th><th>Pretrain SR &uarr;</th><th>Finetune SR &uarr;</th><th>Weighted Avg SR &uarr;</th></tr>
+            </thead>
+            <tbody>
+              <tr class="subhead"><td colspan="4">Finetune task: pot-on-stove</td></tr>
+              <tr class="baseline-ref"><td class="method">Pretrained (no finetuning)</td><td>93.2 <span class="ci">±1.2</span></td><td>4.0 <span class="ci">±11.1</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SFT</td><td>89.0 <span class="ci">±0.9</span></td><td>100.0 <span class="ci">±0.0</span></td><td>89.1</td></tr>
+              <tr><td class="method">RETAIN</td><td>89.7 <span class="ci">±1.2</span></td><td>100.0 <span class="ci">±0.0</span></td><td>89.8</td></tr>
+              <tr><td class="method">LoRA</td><td>88.1 <span class="ci">±0.6</span></td><td>100.0 <span class="ci">±0.0</span></td><td>88.2</td></tr>
+              <tr><td class="method">EWC</td><td>89.5 <span class="ci">±1.4</span></td><td>100.0 <span class="ci">±0.0</span></td><td>89.6</td></tr>
+              <tr><td class="method">L2</td><td>84.8 <span class="ci">±0.7</span></td><td>84.0 <span class="ci">±11.1</span></td><td>84.8</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>89.7 <span class="ci">±1.4</span></td><td>56.0 <span class="ci">±32.4</span></td><td>89.5</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>91.9 <span class="ci">±0.9</span></td><td>92.0 <span class="ci">±13.6</span></td><td>91.9</td></tr>
+
+              <tr class="subhead"><td colspan="4">Finetune task: items-into-basket</td></tr>
+              <tr class="baseline-ref"><td class="method">Pretrained (no finetuning)</td><td>93.2 <span class="ci">±1.2</span></td><td>0.0 <span class="ci">±0.0</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SFT</td><td>93.2 <span class="ci">±1.5</span></td><td>100.0 <span class="ci">±0.0</span></td><td>93.3</td></tr>
+              <tr><td class="method">RETAIN</td><td>93.3 <span class="ci">±2.1</span></td><td>96.0 <span class="ci">±11.1</span></td><td>93.4</td></tr>
+              <tr><td class="method">LoRA</td><td>93.4 <span class="ci">±0.9</span></td><td>100.0 <span class="ci">±0.0</span></td><td>93.5</td></tr>
+              <tr><td class="method">EWC</td><td>93.5 <span class="ci">±1.2</span></td><td>100.0 <span class="ci">±0.0</span></td><td>93.6</td></tr>
+              <tr><td class="method">L2</td><td>93.8 <span class="ci">±1.2</span></td><td>92.0 <span class="ci">±13.6</span></td><td>93.8</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>94.3 <span class="ci">±0.5</span></td><td>36.0 <span class="ci">±11.1</span></td><td>93.8</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>94.3 <span class="ci">±1.3</span></td><td>100.0 <span class="ci">±0.0</span></td><td>94.4</td></tr>
+
+              <tr class="subhead"><td colspan="4">Finetune task: mugs-on-plates</td></tr>
+              <tr class="baseline-ref"><td class="method">Pretrained (no finetuning)</td><td>93.2 <span class="ci">±1.2</span></td><td>0.0 <span class="ci">±0.0</span></td><td>&ndash;</td></tr>
+              <tr><td class="method">SFT</td><td>80.7 <span class="ci">±2.0</span></td><td>96.0 <span class="ci">±11.1</span></td><td>80.8</td></tr>
+              <tr><td class="method">RETAIN</td><td>85.4 <span class="ci">±1.1</span></td><td>88.0 <span class="ci">±22.2</span></td><td>85.5</td></tr>
+              <tr><td class="method">LoRA</td><td>91.9 <span class="ci">±1.3</span></td><td>100.0 <span class="ci">±0.0</span></td><td>91.9</td></tr>
+              <tr><td class="method">EWC</td><td>78.8 <span class="ci">±0.8</span></td><td>96.0 <span class="ci">±11.1</span></td><td>78.9</td></tr>
+              <tr><td class="method">L2</td><td>86.1 <span class="ci">±0.6</span></td><td>80.0 <span class="ci">±30.4</span></td><td>86.0</td></tr>
+              <tr><td class="method">SAMBAR w/o importance</td><td>93.2 <span class="ci">±1.2</span></td><td>76.0 <span class="ci">±20.8</span></td><td>93.1</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>90.7 <span class="ci">±1.1</span></td><td>92.0 <span class="ci">±13.6</span></td><td>90.8</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </details>
+        <div class="table-caption">
+          <strong>Learning one new task from a broadly pretrained policy.</strong> $\pi_{0.5}$ pretrained on 117 LIBERO
+          tasks. 5 seeds &times; 5 episodes/seed, mean ± 95% CI. Weighted Avg SR is over all 118 tasks. Forgetting is mild
+          in this regime, and SAMBAR learns each new task without significantly forgetting the 117 pretrained tasks.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Hardware -->
+<section class="section hero is-small">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Hardware Experiments</h2>
+        <div class="content has-text-justified">
+          <p>
+            We ask whether a policy running on real hardware can keep learning new tasks without forgetting the ones it
+            already knows. We run on an <strong>xArm7</strong> manipulator and collected <strong>50 tele-operated
+            demonstrations</strong> for each of six tabletop tasks. Four serve as pretraining tasks for $\pi_{0.5}$, and
+            two are held out as finetuning tasks. We count a rollout as successful <strong>only if the task is completed
+            in full</strong>, awarding no partial credit, and compare against one representative of each baseline family:
+            SFT, RETAIN ($\alpha = 0.5$), and EWC.
+          </p>
+          <div class="has-text-centered" style="margin-top: 1.5rem;">
+            <img src="pictures/hardware_tasks.png" alt="The six hardware tasks: four pretraining and two finetuning" style="max-height:470px; display:block; margin:auto;">
+          </div>
+          <h6 class="subtitle has-text-centered" style="font-size: 15px; margin-top: 1rem;">
+            The hardware tasks. We pretrain $\pi_{0.5}$ on the four tasks on the left and finetune on the two on the
+            right. Each panel shows the initial scene, and the arrows show the task the policy needs to perform.
+          </h6>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Hardware video comparison -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">SFT vs. SAMBAR on Hardware</h2>
+        <div class="content has-text-justified">
+          <p>
+            Both policies were finetuned on <code>cake-on-cake-tray</code> and then on
+            <code>remove-lid-and-place-bird</code>, in sequence. Every video below is the <strong>same final policy</strong>
+            evaluated on four different tasks &mdash; two it was just taught, and two it learned during pretraining and
+            must not forget. Videos play at 10&times; speed.
+          </p>
+        </div>
+
+        <div class="columns is-multiline is-centered vid-grid" style="margin-top:0.5rem;">
+
+          <div class="column is-full">
+            <div class="task-card">
+              <div class="task-name">cake-on-cake-tray <span class="badge badge-ft">finetune</span></div>
+              <div class="columns is-mobile" style="margin-bottom:0;">
+                <div class="column is-half">
+                  <div class="vid-label tag-sft">SFT</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sft_cake.mp4" type="video/mp4"></video>
+                </div>
+                <div class="column is-half">
+                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_cake.mp4" type="video/mp4"></video>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="column is-full">
+            <div class="task-card">
+              <div class="task-name">remove-lid-and-place-bird <span class="badge badge-ft">finetune</span></div>
+              <div class="columns is-mobile" style="margin-bottom:0;">
+                <div class="column is-half">
+                  <div class="vid-label tag-sft">SFT</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sft_removelid.mp4" type="video/mp4"></video>
+                </div>
+                <div class="column is-half">
+                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_removelid.mp4" type="video/mp4"></video>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="column is-full">
+            <div class="task-card">
+              <div class="task-name">eraser-in-bowl <span class="badge badge-pre">pretraining</span></div>
+              <div class="columns is-mobile" style="margin-bottom:0;">
+                <div class="column is-half">
+                  <div class="vid-label tag-sft">SFT</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_bowl.mp4" type="video/mp4"></video>
+                </div>
+                <div class="column is-half">
+                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_bowl.mp4" type="video/mp4"></video>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="column is-full">
+            <div class="task-card">
+              <div class="task-name">eraser-in-mug <span class="badge badge-pre">pretraining</span></div>
+              <div class="columns is-mobile" style="margin-bottom:0;">
+                <div class="column is-half">
+                  <div class="vid-label tag-sft">SFT</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_mug.mp4" type="video/mp4"></video>
+                </div>
+                <div class="column is-half">
+                  <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                  <video autoplay loop muted playsinline><source src="videos/hw_sambar_eraser_mug.mp4" type="video/mp4"></video>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Hardware tables -->
+<section class="section hero is-small">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Hardware Results</h2>
+
+        <h4 class="title is-5" style="margin-top:1rem;">Sequential continual learning on hardware</h4>
+        <div class="content has-text-justified">
+          <p>
+            Starting from the policy pretrained on the four tasks, we finetune on <code>cake-on-cake-tray</code> and then
+            on <code>remove-lid-and-place-bird</code>, and evaluate all six tasks at the end. Every method remembers the
+            pretraining tasks reasonably well here (90&ndash;100%), so the methods separate on <strong>whether they ever
+            acquire the second task</strong>. RETAIN cannot perform the long-horizon
+            <code>remove-lid-and-place-bird</code> at all, failing all 5 rollouts, and EWC manages only 2 of 5. SAMBAR
+            succeeds on 4 of 5 rollouts of <em>both</em> finetune tasks while keeping all four pretraining tasks at 100%.
+          </p>
+        </div>
+        <div class="chart-grid cols-3"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hwseq0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hwseq0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="85.50" y="57.00" width="34.00" height="207.00" fill="#a6a6a6"/><text x="102.5" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="186.50" y="57.00" width="34.00" height="207.00" fill="#c2b280"/><text x="203.5" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="34.00" width="34.00" height="230.00" fill="#cbbeae"/><text x="304.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="34.00" width="34.00" height="230.00" fill="#ffa500"/><text x="405.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">100</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hwseq1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hwseq1-t">cake-on-cake-tray</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">cake-on-cake-tray</text><rect x="85.50" y="80.00" width="34.00" height="184.00" fill="#a6a6a6"/><text x="102.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="186.50" y="34.00" width="34.00" height="230.00" fill="#c2b280"/><text x="203.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="80.00" width="34.00" height="184.00" fill="#cbbeae"/><text x="304.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="80.00" width="34.00" height="184.00" fill="#ffa500"/><text x="405.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">80</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hwseq2-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hwseq2-t">remove-lid-and-place-bird</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">remove-lid-and-place-bird</text><rect x="85.50" y="126.00" width="34.00" height="138.00" fill="#a6a6a6"/><text x="102.5" y="121.0" text-anchor="middle" font-size="11" fill="#1a1a1a">60</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><text x="203.5" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="172.00" width="34.00" height="92.00" fill="#cbbeae"/><text x="304.5" y="167.0" text-anchor="middle" font-size="11" fill="#1a1a1a">40</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="80.00" width="34.00" height="184.00" fill="#ffa500"/><text x="405.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">80</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <details class="numbers">
+          <summary>Show the exact numbers</summary>
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th class="method" rowspan="2">Method</th>
+                <th class="group" colspan="4">Pretraining tasks &uarr;</th>
+                <th rowspan="2">Pretrain SR &uarr;</th>
+                <th class="group" colspan="2">Finetune tasks &uarr;</th>
+                <th rowspan="2">Weighted Avg SR &uarr;</th>
+              </tr>
+              <tr>
+                <th>bird-in-bin</th><th>two-birds-in-bin</th><th>eraser-in-mug</th><th>eraser-in-bowl</th>
+                <th>cake-on-cake-tray</th><th>remove-lid-and-place-bird</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="method">SFT</td><td>5/5</td><td>5/5</td><td>5/5</td><td>3/5</td><td>90.0</td><td>4/5</td><td>3/5</td><td>83.3</td></tr>
+              <tr><td class="method">RETAIN ($\alpha=0.5$)</td><td>5/5</td><td>5/5</td><td>4/5</td><td>4/5</td><td>90.0</td><td>5/5</td><td class="zero">0/5</td><td>76.7</td></tr>
+              <tr><td class="method">EWC</td><td>5/5</td><td>5/5</td><td>5/5</td><td>5/5</td><td>100.0</td><td>4/5</td><td>2/5</td><td>86.7</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>5/5</td><td>5/5</td><td>5/5</td><td>5/5</td><td>100.0</td><td>4/5</td><td>4/5</td><td>93.3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </details>
+        <div class="table-caption">
+          <strong>Sequential continual learning on hardware.</strong> Individual tasks are reported as the number of
+          successful rollouts out of 5. Pretrain SR is the percentage of the 20 pretraining rollouts that succeed;
+          Weighted Avg SR is the percentage of all 30 rollouts that succeed.
+        </div>
+
+        <h4 class="title is-5" style="margin-top:2rem;">Finetuning on a single task</h4>
+        <div class="content has-text-justified">
+          <p>
+            On <code>cake-on-cake-tray</code>, SAMBAR succeeds on all 5 rollouts of all four pretraining tasks
+            <em>and</em> all 5 rollouts of the new task. SFT forgets the long-horizon <code>two-birds-in-bin</code> and
+            the goal task <code>eraser-in-bowl</code>. On the long-horizon
+            <code>remove-lid-and-place-bird</code>, RETAIN and EWC both retain the pretraining tasks well but
+            <strong>never learn the new task at all</strong>, failing all 5 rollouts; SFT shows the opposite failure,
+            acquiring the finetuning task but forgetting the pretraining ones. SAMBAR is the only method that keeps a
+            high success rate on all four pretraining tasks while still acquiring the new one.
+          </p>
+        </div>
+                <h5 class="chart-group">Finetune task: <code>cake-on-cake-tray</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hw1_cake_on_cake_tray0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hw1_cake_on_cake_tray0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="85.50" y="126.00" width="34.00" height="138.00" fill="#a6a6a6"/><text x="102.5" y="121.0" text-anchor="middle" font-size="11" fill="#1a1a1a">60</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="186.50" y="68.50" width="34.00" height="195.50" fill="#c2b280"/><text x="203.5" y="63.5" text-anchor="middle" font-size="11" fill="#1a1a1a">85</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="80.00" width="34.00" height="184.00" fill="#cbbeae"/><text x="304.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="34.00" width="34.00" height="230.00" fill="#ffa500"/><text x="405.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">100</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hw1_cake_on_cake_tray1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hw1_cake_on_cake_tray1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="85.50" y="34.00" width="34.00" height="230.00" fill="#a6a6a6"/><text x="102.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="186.50" y="34.00" width="34.00" height="230.00" fill="#c2b280"/><text x="203.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="80.00" width="34.00" height="184.00" fill="#cbbeae"/><text x="304.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="34.00" width="34.00" height="230.00" fill="#ffa500"/><text x="405.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">100</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <h5 class="chart-group">Finetune task: <code>remove-lid-and-place-bird</code></h5>
+<div class="chart-grid cols-2"><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hw1_remove_lid_and_place_bird0-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hw1_remove_lid_and_place_bird0-t">Pretrain SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Pretrain SR</text><rect x="85.50" y="80.00" width="34.00" height="184.00" fill="#a6a6a6"/><text x="102.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a">80</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><rect x="186.50" y="57.00" width="34.00" height="207.00" fill="#c2b280"/><text x="203.5" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><rect x="287.50" y="57.00" width="34.00" height="207.00" fill="#cbbeae"/><text x="304.5" y="52.0" text-anchor="middle" font-size="11" fill="#1a1a1a">90</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="34.00" width="34.00" height="230.00" fill="#ffa500"/><text x="405.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">100</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div><div class="chart-card"><svg class="chart" viewBox="0 0 470 330" width="100%" role="img" aria-labelledby="hw1_remove_lid_and_place_bird1-t" preserveAspectRatio="xMidYMid meet" font-family="Castoro, Georgia, 'Times New Roman', serif"><title id="hw1_remove_lid_and_place_bird1-t">Finetune SR</title><text x="254.0" y="17" text-anchor="middle" font-size="13.5" fill="#1a1a1a">Finetune SR</text><rect x="85.50" y="34.00" width="34.00" height="230.00" fill="#a6a6a6"/><text x="102.5" y="29.0" text-anchor="middle" font-size="11" fill="#1a1a1a">100</text><text x="102.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">SFT</text><text x="203.5" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="203.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">RETAIN</text><text x="304.5" y="259.0" text-anchor="middle" font-size="11" fill="#1a1a1a">0</text><text x="304.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a">EWC</text><rect x="388.50" y="80.00" width="34.00" height="184.00" fill="#ffa500"/><text x="405.5" y="75.0" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">80</text><text x="405.5" y="279.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">SAMBAR</text><text x="405.5" y="290.0" text-anchor="middle" font-size="10.5" fill="#1a1a1a" font-weight="700">(Ours)</text><line x1="52" y1="28" x2="52" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="52" y1="264" x2="456" y2="264" stroke="#3a3a3a" stroke-width="1"/><line x1="48" y1="264.0" x2="52" y2="264.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="267.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">0</text><line x1="48" y1="206.5" x2="52" y2="206.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="210.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">25</text><line x1="48" y1="149.0" x2="52" y2="149.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="152.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">50</text><line x1="48" y1="91.5" x2="52" y2="91.5" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="95.0" text-anchor="end" font-size="10.5" fill="#1a1a1a">75</text><line x1="48" y1="34.0" x2="52" y2="34.0" stroke="#3a3a3a" stroke-width="1"/><text x="44" y="37.5" text-anchor="end" font-size="10.5" fill="#1a1a1a">100</text><text x="14" y="149.0" transform="rotate(-90 14,149.0)" text-anchor="middle" font-size="10.5" fill="#1a1a1a">Success Rate (%)</text></svg></div></div>
+        <details class="numbers">
+          <summary>Show the exact numbers</summary>
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th class="method" rowspan="2">Method</th>
+                <th class="group" colspan="4">Pretraining tasks &uarr;</th>
+                <th rowspan="2">Pretrain SR &uarr;</th>
+                <th rowspan="2">Finetune SR &uarr;</th>
+                <th rowspan="2">Weighted Avg SR &uarr;</th>
+              </tr>
+              <tr>
+                <th>bird-in-bin</th><th>two-birds-in-bin</th><th>eraser-in-mug</th><th>eraser-in-bowl</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="subhead"><td colspan="8">Finetune task: cake-on-cake-tray</td></tr>
+              <tr><td class="method">SFT</td><td>4/5</td><td>1/5</td><td>5/5</td><td>2/5</td><td>60.0</td><td>5/5</td><td>68.0</td></tr>
+              <tr><td class="method">RETAIN ($\alpha=0.5$)</td><td>5/5</td><td>4/5</td><td>3/5</td><td>5/5</td><td>85.0</td><td>5/5</td><td>88.0</td></tr>
+              <tr><td class="method">EWC</td><td>5/5</td><td>4/5</td><td>5/5</td><td>2/5</td><td>80.0</td><td>4/5</td><td>80.0</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>5/5</td><td>5/5</td><td>5/5</td><td>5/5</td><td>100.0</td><td>5/5</td><td>100.0</td></tr>
+
+              <tr class="subhead"><td colspan="8">Finetune task: remove-lid-and-place-bird</td></tr>
+              <tr><td class="method">SFT</td><td>5/5</td><td>4/5</td><td>4/5</td><td>3/5</td><td>80.0</td><td>5/5</td><td>84.0</td></tr>
+              <tr><td class="method">RETAIN ($\alpha=0.5$)</td><td>5/5</td><td>5/5</td><td>3/5</td><td>5/5</td><td>90.0</td><td class="zero">0/5</td><td>72.0</td></tr>
+              <tr><td class="method">EWC</td><td>5/5</td><td>5/5</td><td>3/5</td><td>5/5</td><td>90.0</td><td class="zero">0/5</td><td>72.0</td></tr>
+              <tr class="ours"><td class="method">SAMBAR (ours)</td><td>5/5</td><td>5/5</td><td>5/5</td><td>5/5</td><td>100.0</td><td>4/5</td><td>96.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </details>
+        <div class="table-caption">
+          <strong>Learning one new task on hardware.</strong> We pretrain $\pi_{0.5}$ on four tasks and then finetune it
+          on each of the two finetuning tasks separately. Every task is evaluated with 5 rollouts. Pretrain SR is the
+          percentage of the 20 pretraining rollouts that succeed; Weighted Avg SR is the percentage of all 25 rollouts
+          that succeed.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Conclusion -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full">
+        <h2 class="title is-3">Conclusion</h2>
+        <div class="content has-text-justified">
+          <p>
+            We presented <strong>SAMBAR</strong>, a replay-free method for continual VLA finetuning that combines
+            importance-weighted parameter anchoring with the method of multipliers. On sequential LIBERO tasks, SAMBAR
+            achieves <strong>88.2%</strong> success on pretraining tasks and <strong>78.7%</strong> average success on
+            three newly learned tasks, while every evaluated baseline completely forgets the first finetuning task. On
+            hardware, it retains <strong>100%</strong> success on four pretraining tasks and achieves <strong>80%</strong>
+            on each of two sequentially learned tasks &mdash; the highest Weighted Avg SR in both settings
+            (<strong>87.4%</strong> in simulation, <strong>93.3%</strong> on hardware). All of this uses only stored
+            parameters and importance estimates, never a stored demonstration.
+          </p>
+          <p>
+            Future work will let the policy improve from its own rollouts, updating on the experience it collects without
+            losing the tasks it already performs.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- BibTeX -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@article{shrivastava2026sambar,
+  title   = {SAMBAR: Selective Anchoring via Method of Multipliers for Balanced
+             Knowledge Acquisition and Retention in Vision-Language-Action Models},
+  author  = {Shrivastava, Aayushi and Zhou, Xunlan and Zhao, Hongrui and
+             Chen, Ziyu and Mehr, Negar},
+  year    = {2026}
+}</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+            <br> This website is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
