@@ -260,30 +260,6 @@
 </section>
 
 
-<!-- Teaser figure -->
-<section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body">
-      <img src="pictures/overview.png" alt="SAMBAR overview: importance-weighted anchoring vs. SFT across sequential finetuning" style="display:block; margin:auto; max-width:100%; height:auto;">
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-full">
-          <div class="content has-text-justified">
-            An overview of <strong>SAMBAR</strong>: a replay-free continual learning algorithm that prevents catastrophic
-            forgetting during VLA finetuning <strong>without requiring access to the demonstrations of any previously
-            learned task</strong>. A policy learns tasks $T_1, T_2, T_3$ sequentially using only the current task's
-            demonstrations. <span style="color:#e07000;">Orange</span>, <span style="color:#3273dc;">blue</span>, and
-            <span style="color:#5c8727;">green</span> indicate parameter importance for $T_1$, $T_2$, and $T_3$, with
-            darker shades indicating greater importance. Standard supervised finetuning (SFT) overwrites parameters
-            important to earlier tasks, causing forgetting; SAMBAR limits changes to those parameters while allowing
-            new-task adaptation.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
 <!-- Overview -->
 <section class="section hero is-light">
   <div class="container is-max-desktop">
@@ -295,7 +271,7 @@
             <li><strong>SAMBAR</strong> is a <strong>replay-free</strong> continual learning algorithm for Vision-Language-Action
               (VLA) models. It lets a deployed policy learn new tasks one after another without ever revisiting the
               demonstrations of the tasks it already knows.</li>
-            <li>We cast continual learning as a <strong>constrained optimization problem</strong> minimize the behavior
+            <li>We cast continual learning as a <strong>constrained optimization problem</strong> which minimize the behavior
               cloning loss on the new task, subject to the constraint that the policy parameters do not drift away from
               their previous values and solve it with the <strong>method of multipliers</strong>.</li>
             <li>Unlike a fixed regularization penalty, the method of multipliers accumulates the constraint violation in a
@@ -304,10 +280,24 @@
             <li>We make the constraint <strong>selective</strong>: an importance-weighted anchor holds the parameters that
               matter most to earlier tasks near their previous values, while leaving the rest free to move and acquire
               the new task. This is what balances <strong>knowledge retention</strong> against <strong>knowledge acquisition</strong>.</li>
-            <li>After finetuning on three LIBERO tasks in sequence, <strong>every replay-free baseline falls to 0.0% on the
+            <!-- <li>After finetuning on three LIBERO tasks in sequence, <strong>every replay-free baseline falls to 0.0% on the
               first task it was taught</strong>, while SAMBAR still performs it <strong>84.0%</strong> of the time and keeps
-              <strong>88.2%</strong> success on the pretraining tasks.</li>
+              <strong>88.2%</strong> success on the pretraining tasks.</li> -->
           </ul>
+          <div class="has-text-centered" style="margin-top: 1.5rem;">
+            <img src="pictures/overview.png" alt="SAMBAR overview: importance-weighted anchoring vs. SFT across sequential finetuning" style="display:block; margin:auto; max-width:100%; height:auto;">
+          </div>
+          <div class="content has-text-justified" style="margin-top: 1rem;">
+            <!-- An overview of <strong>SAMBAR</strong>: a replay-free continual learning algorithm that prevents catastrophic
+            forgetting during VLA finetuning <strong>without requiring access to the demonstrations of any previously
+            learned task</strong>. -->
+            A policy learns tasks $T_1, T_2, T_3$ sequentially using only the current task's 
+            demonstrations. <span style="color:#e07000;">Orange</span>, <span style="color:#3273dc;">blue</span>, and
+            <span style="color:#5c8727;">green</span> indicate parameter importance for $T_1$, $T_2$, and $T_3$, with
+            darker shades indicating greater importance. Standard supervised finetuning (SFT) overwrites parameters
+            important to earlier tasks, causing forgetting; SAMBAR limits changes to those parameters while allowing
+            new-task adaptation.
+          </div>
         </div>
       </div>
     </div>
@@ -323,24 +313,24 @@
         <h2 class="title is-3">The Challenge</h2>
         <div class="content has-text-justified">
           <p>
-            Picture this: you bring home a brand-new assistant robot running a VLA policy that effortlessly does laundry
+            <!-- Picture this: you bring home a brand-new assistant robot running a VLA policy that effortlessly does laundry
             and washes dishes. But then you decide you want it to clean your aquarium too. Lacking the massive data and
             compute of its original pretraining, you simply finetune the VLA on a few demonstrations of aquarium
-            cleaning. Your robot ends up mastering the aquarium, only to <strong>completely forget how to wash
-            dishes</strong>. This is <em>continual learning</em> running into <em>catastrophic forgetting</em>.
+            cleaning. Your robot ends up mastering the aquarium, only to <strong>completely forget how to wash -->
+            <!-- dishes</strong>. This is <em>continual learning</em> running into <em>catastrophic forgetting</em>. -->
           </p>
           <ul>
-            <li>Forgetting arises because the Supervised Finetuning (SFT) objective that teaches the new task
+            <!-- <li>Forgetting arises because the Supervised Finetuning (SFT) objective that teaches the new task
               <strong>carries no term to protect the knowledge of the old ones</strong>.</li>
             <li>The most common fix is <strong>replay</strong> &mdash; mixing demonstrations of earlier tasks into the new
               task's training. But a deployed policy rarely has those demonstrations: the company never shipped the
               laundry and dishwashing data with the robot. We therefore work in the <strong>replay-free</strong> setting.</li>
             <li><strong>Regularization-based</strong> methods instead add a penalty pulling parameters toward their previous
               values. But tuning that penalty is a single, up-front trade-off: set it high and the robot never learns to
-              clean the aquarium; set it low and it forgets how to wash dishes.</li>
+              clean the aquarium; set it low and it forgets how to wash dishes.</li> -->
           </ul>
           <p>
-            We thus ask: <strong>Can we develop a continual learning method that eliminates the need for previous training
+           <strong>Can we develop a continual learning method that eliminates the need for previous training
             data while balancing knowledge acquisition and retention?</strong>
           </p>
 
@@ -990,9 +980,7 @@
             achieves <strong>88.2%</strong> success on pretraining tasks and <strong>78.7%</strong> average success on
             three newly learned tasks, while every evaluated baseline completely forgets the first finetuning task. On
             hardware, it retains <strong>100%</strong> success on four pretraining tasks and achieves <strong>80%</strong>
-            on each of two sequentially learned tasks &mdash; the highest Weighted Avg SR in both settings
-            (<strong>87.4%</strong> in simulation, <strong>93.3%</strong> on hardware). All of this uses only stored
-            parameters and importance estimates, never a stored demonstration.
+            on each of two sequentially learned tasks. These results demonstrate the balance \methodname\ provides between knowledge acquisition and retention using stored parameters and importance estimates.
           </p>
           <p>
             Future work will let the policy improve from its own rollouts, updating on the experience it collects without
