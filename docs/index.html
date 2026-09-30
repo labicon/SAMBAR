@@ -207,6 +207,11 @@
       text-align: center;
     }
     .tag-sft   { color: #cc0f35; }
+    /* red frame over the closing seconds of the SFT clips that fail */
+    .vid-grid video.flag-fail {
+      outline: 10px solid #e02040;
+      outline-offset: -6px;
+    }
     .tag-ours  { color: #b35c00; }
     .task-name {
       font-family: monospace;
@@ -583,7 +588,7 @@
                 <div class="columns is-mobile" style="margin-bottom:0;">
                   <div class="column is-half">
                     <div class="vid-label tag-sft">SFT</div>
-                    <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_bowl.mp4" type="video/mp4"></video>
+                    <video autoplay loop muted playsinline data-flag-last="5"><source src="videos/hw_sft_eraser_bowl.mp4" type="video/mp4"></video>
                   </div>
                   <div class="column is-half">
                     <div class="vid-label tag-ours">SAMBAR (ours)</div>
@@ -636,6 +641,23 @@
 
             <div class="column is-full">
               <div class="task-card">
+                <div class="task-name">two-birds-in-bin</div>
+                <!-- <div class="panel-note">But SFT forgets this long-horizon pretraining task (1/5), while SAMBAR holds 5/5.</div> -->
+                <div class="columns is-mobile" style="margin-bottom:0;">
+                  <div class="column is-half">
+                    <div class="vid-label tag-sft">SFT</div>
+                    <video autoplay loop muted playsinline data-flag-last="2"><source src="videos/hw_st_sft_twobirds.mp4" type="video/mp4"></video>
+                  </div>
+                  <div class="column is-half">
+                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
+                    <video autoplay loop muted playsinline><source src="videos/hw_st_sambar_twobirds.mp4" type="video/mp4"></video>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-full">
+              <div class="task-card">
                 <div class="task-name">cake-on-cake-tray</div>
                 <!-- <div class="panel-note">Both acquire the new task perfectly &mdash; 5/5 each.</div> -->
                 <div class="columns is-mobile" style="margin-bottom:0;">
@@ -646,23 +668,6 @@
                   <div class="column is-half">
                     <div class="vid-label tag-ours">SAMBAR (ours)</div>
                     <video autoplay loop muted playsinline><source src="videos/hw_st_sambar_cake.mp4" type="video/mp4"></video>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="column is-full">
-              <div class="task-card">
-                <div class="task-name">two-birds-in-bin</div>
-                <!-- <div class="panel-note">But SFT forgets this long-horizon pretraining task (1/5), while SAMBAR holds 5/5.</div> -->
-                <div class="columns is-mobile" style="margin-bottom:0;">
-                  <div class="column is-half">
-                    <div class="vid-label tag-sft">SFT</div>
-                    <video autoplay loop muted playsinline><source src="videos/hw_st_sft_twobirds.mp4" type="video/mp4"></video>
-                  </div>
-                  <div class="column is-half">
-                    <div class="vid-label tag-ours">SAMBAR (ours)</div>
-                    <video autoplay loop muted playsinline><source src="videos/hw_st_sambar_twobirds.mp4" type="video/mp4"></video>
                   </div>
                 </div>
               </div>
@@ -684,7 +689,7 @@
                 <div class="columns is-mobile" style="margin-bottom:0;">
                   <div class="column is-half">
                     <div class="vid-label tag-sft">SFT</div>
-                    <video autoplay loop muted playsinline><source src="videos/hw_sft_eraser_mug.mp4" type="video/mp4"></video>
+                    <video autoplay loop muted playsinline data-flag-last="2"><source src="videos/hw_sft_eraser_mug.mp4" type="video/mp4"></video>
                   </div>
                   <div class="column is-half">
                     <div class="vid-label tag-ours">SAMBAR (ours)</div>
@@ -1260,6 +1265,21 @@ document.querySelectorAll('.tabs-bar').forEach(function (bar) {
     else if (e.key === 'End') { next = tabs[tabs.length - 1]; }
     if (next) { e.preventDefault(); select(next, true); }
   });
+});
+
+// Red frame over the final seconds of the flagged SFT clips. Clears on loop,
+// since currentTime resets to 0.
+document.querySelectorAll('video[data-flag-last]').forEach(function (v) {
+  var tail = parseFloat(v.getAttribute('data-flag-last')) || 5;
+  function update() {
+    var d = v.duration;
+    if (!isFinite(d) || d <= 0) { return; }
+    v.classList.toggle('flag-fail', v.currentTime >= d - tail);
+  }
+  ['timeupdate', 'seeked', 'loadedmetadata', 'play'].forEach(function (ev) {
+    v.addEventListener(ev, update);
+  });
+  update();
 });
 </script>
 
