@@ -96,19 +96,13 @@ uv run --extra cuda python examples/libero/evaluate.py \
 
 The evaluation driver starts `scripts/serve_policy.py` and runs the simulator in its separate environment. For standalone serving and rollout commands, see [examples/libero/README.md](examples/libero/README.md).
 
-## Method and importance
-
-SAMBAR preserves the calculations selected from `weighted_taco_ar.py`: square the gradient of the **mean minibatch loss**, then average across batches. The weighted anchor keeps epsilon in both numerator and denominator.
-
-Pretraining saves LIBERO importance alongside the final checkpoint. Later SAMBAR stages use that artifact and update its task-count-weighted running average after the current task. **Original π0.5 pretraining importance is unavailable; the saved estimate covers LIBERO pretraining only.** See [method and provenance](docs/method.md) for the exact formulas and approved history handling.
-
 ## Acknowledgements
 
 This work is supported by the National Science Foundation, under grants ECCS-2438314 CAREER Award, CNS-2529645. This work was also supported in part by an Office of Naval Research (ONR) Young Investigator Program (YIP) award. This research was made possible by GPU resources provided via the NVIDIA Academic Grant.
 
 ## Disclaimer
 
-The code in this repository was refactored and reorganized using OpenAI Codex. See the [validation report](docs/validation.md) for the checks performed and remaining limitations.
+The code in this repository was refactored and reorganized using OpenAI Codex. 
 
 ## Citation
 
