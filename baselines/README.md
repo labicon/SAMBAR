@@ -1,6 +1,6 @@
 # Baselines
 
-`python -m baselines.train` selects the method and curriculum. The implementations under [`src/openpi/training/baselines/`](../src/openpi/training/baselines/) retain their source losses and update rules. L2/EWC operate on all parameters; subset selection is removed. LoRA trains the configured adapters. GPU examples include `--extra cuda`.
+`python -m baselines.train` selects the method and curriculum. The implementations under [`src/openpi/training/baselines/`](../src/openpi/training/baselines/) retain their source losses and update rules. LoRA trains the configured adapters. GPU examples include `--extra cuda`.
 
 | Method | Entry point | Historical demonstrations |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ For all three broad tasks in a combined stage, omit `--finetune-tasks`; to evalu
 
 L2 adds `lambda/2 * sum((theta-reference)**2)`, with `--l2.lam 0.02` by default. EWC adds `lambda/2 * sum(importance*(theta-reference)**2)`, with `--wl2.lam 0.02`, 50 Fisher batches and normalization disabled by default. The source opt-in `--wl2.normalize-weights` is retained. These defaults are inherited, not retuned by the refactor.
 
-## Three-stage narrow sequences
+## Sequential finetuning sequences
 
 Chain each stage's final checkpoint into the next `--pretrained-path` for IDs 3, 8, 11. The following Bash example works for SFT, L2, EWC and LoRA:
 
