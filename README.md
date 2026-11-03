@@ -36,7 +36,6 @@ SAMBAR/
 └── tests/                         # CPU regression tests
 ```
 
-[File-by-file descriptions](docs/files.md) explain each retained research file. The project website remains at `docs/index.html`.
 
 ## Installation
 
