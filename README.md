@@ -102,3 +102,17 @@ SAMBAR preserves the calculations selected from `weighted_taco_ar.py`: square th
 
 Pretraining saves LIBERO importance alongside the final checkpoint. Later SAMBAR stages use that artifact and update its task-count-weighted running average after the current task. **Original π0.5 pretraining importance is unavailable; the saved estimate covers LIBERO pretraining only.** See [method and provenance](docs/method.md) for the exact formulas and approved history handling.
 
+## Citation
+
+If you use SAMBAR in your research, please cite:
+
+```bibtex
+@article{shrivastava2026sambar,
+  title   = {SAMBAR: Selective Anchoring via Method of Multipliers for Balanced
+             Knowledge Acquisition and Retention in Vision-Language-Action Models},
+  author  = {Shrivastava, Aayushi and Zhou, Xunlan and Zhao, Hongrui and
+             Chen, Ziyu and Mehr, Negar},
+  journal = {arXiv preprint arXiv:2609.32108},
+  year    = {2026}
+}
+```
