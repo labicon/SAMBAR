@@ -102,4 +102,3 @@ SAMBAR preserves the calculations selected from `weighted_taco_ar.py`: square th
 
 Pretraining saves LIBERO importance alongside the final checkpoint. Later SAMBAR stages use that artifact and update its task-count-weighted running average after the current task. **Original π0.5 pretraining importance is unavailable; the saved estimate covers LIBERO pretraining only.** See [method and provenance](docs/method.md) for the exact formulas and approved history handling.
 
-This release includes the LIBERO research workflows. Hardware integrations, plain TACO and parameter-subset experiments are excluded. [CPU validation](docs/validation.md) covers the calculations, three-stage training/checkpoint workflow, reduced-size π0.5 model and local LeRobot data pipeline. Full π0.5 GPU training and simulator rollouts remain unverified.
