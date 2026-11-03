@@ -1,0 +1,17 @@
+# Minimal evaluator dependencies, retaining the working source runtime versions.
+# Training uses a separate environment.
+numpy==1.26.4
+torch==2.5.1
+torchvision==0.20.1
+robosuite==1.4.1
+mujoco==3.8.0
+bddl==3.6.0
+imageio[ffmpeg]==2.37.3
+opencv-python==4.11.0.86
+easydict==1.13
+gym==0.26.2
+tqdm==4.67.3
+tyro==1.0.13
+PyYAML==6.0.3
+matplotlib==3.10.9
+h5py

@@ -1,3 +1,15 @@
 .linkedin-build/*
 linkedin-post/*
 linkedin-post-v2/*
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+.pytest_cache/
+.ruff_cache/
+checkpoints/
+data/
+outputs/
+wandb/
+third_party/
+*.log
