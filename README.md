@@ -98,7 +98,7 @@ The checked-in normalization statistics can be recomputed through the same data 
 uv run --extra cuda python scripts/compute_norm_stats.py --setting narrow
 ```
 
-See [experiments](docs/experiments.md) for independent finetuning, broad sequences, importance export and inherited hyperparameters. SAMBAR trains and regularizes all parameters.
+SAMBAR trains and regularizes all parameters. For importance export and commands for each finetuning regime, see the [experiment guide](docs/experiments.md).
 
 ## Baselines
 
