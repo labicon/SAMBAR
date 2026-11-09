@@ -99,9 +99,7 @@ The evaluation driver starts `scripts/serve_policy.py` and runs the simulator in
 
 This work is supported by the National Science Foundation, under grants ECCS-2438314 CAREER Award, CNS-2529645. This work was also supported in part by an Office of Naval Research (ONR) Young Investigator Program (YIP) award. This research was made possible by GPU resources provided via the NVIDIA Academic Grant.
 
-## Disclaimer
-
-The code in this repository was refactored and reorganized using OpenAI Codex. 
+The code in this repository was refactored and reorganized for the release using OpenAI Codex. 
 
 ## Citation
 
