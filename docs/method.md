@@ -48,7 +48,7 @@ LIBERO revision `8f1084e3132a39270c3a13ebe37270a43ece2a01` matches the source re
 
 ## Validation
 
-See [validation and remaining limits](validation.md) for reproducible CPU commands and the exact use of synthetic inputs. Tests cover minibatch gradient cancellation, selected epsilon behavior, 32/117-task running averages, importance shape validation and serialization, real training/checkpoint handoffs across three stages, resume, reduced-size π0.5 forward/backward/action sampling, local LeRobot-format input processing and virtual two-device sharding. A regression test also covers the inherited step-zero checkpoint resume bug fixed during validation.
+See [validation and remaining limits](validation.md) for the CPU results and the synthetic inputs used during refactoring. The checks covered minibatch gradient cancellation, selected epsilon behavior, 32/117-task running averages, importance shape validation and serialization, real training/checkpoint handoffs across three stages, resume, reduced-size π0.5 forward/backward/action sampling, local LeRobot-format input processing and virtual two-device sharding. A regression test also covered the inherited step-zero checkpoint resume bug fixed during validation.
 
 Earlier release checks passed 15 CLI help checks and shell syntax checks for all four launchers. The package wheel builds, the training lockfile is current, and the simulator requirements resolve for Linux/Python 3.11.
 

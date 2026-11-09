@@ -20,7 +20,7 @@ The layout follows RETAIN/openpi: entry points in `scripts/`, reusable code in `
 | [docs/files.md](../docs/files.md) | This per-file guide to the cleaned research release. |
 | [docs/method.md](../docs/method.md) | Exact preserved equations, approved importance lifecycle, checkpoint semantics and provenance. |
 | [docs/setup.md](../docs/setup.md) | Training environment, model/data locations and links to the LIBERO setup guide. |
-| [docs/validation.md](validation.md) | Reproducible CPU validation commands, test substitutions, verified coverage and remaining full-model/GPU/simulator limits. |
+| [docs/validation.md](validation.md) | Recorded CPU validation results, test inputs and remaining full-model/GPU/simulator limits. |
 | [examples/libero/README.md](../examples/libero/README.md) | Simulator setup, standalone/combined evaluation commands and a guide to the LIBERO utilities. |
 | [examples/libero/eval_libero40.sh](../examples/libero/eval_libero40.sh) | Compatibility entry point used by the retained co-training and GRPO sequence launchers. |
 | [examples/libero/evaluate.py](../examples/libero/evaluate.py) | Runs policy serving and LIBERO evaluation across seeds; groups retention/new-task scores by task language. |
@@ -101,9 +101,4 @@ The layout follows RETAIN/openpi: entry points in `scripts/`, reusable code in `
 | [src/openpi/training/utils.py](../src/openpi/training/utils.py) | TrainState container and parameter-tree diagnostics; optional method-state field supports SAMBAR restore. |
 | [src/openpi/training/weight_loaders.py](../src/openpi/training/weight_loaders.py) | Base/checkpoint weight loading and model-tree validation, including adapter-compatible initialization. |
 | [src/openpi/transforms.py](../src/openpi/transforms.py) | Observation/action repacking, normalization, tokenization and transformation composition. |
-| [tests/test_curricula.py](../tests/test_curricula.py) | Tests 32/117-task definitions, explicit current-only data routing, baseline CLI scope and language-based evaluation. |
-| [tests/test_lerobot_cpu.py](../tests/test_lerobot_cpu.py) | Builds a local LeRobot dataset and checks real task filtering, normalization, action chunks, tokenizer interface and batch shapes. |
-| [tests/test_pi05_cpu.py](../tests/test_pi05_cpu.py) | Production π0.5 loss, importance gradients, updates and action sampling at reduced model/vocabulary sizes with random weights. |
-| [tests/test_sambar.py](../tests/test_sambar.py) | CPU regression tests for estimator reduction order, epsilon anchor, cached history, serialization, stage execution and restore. |
-| [tests/test_workflow_cpu.py](../tests/test_workflow_cpu.py) | Real optimizer, checkpoint loading, three-stage handoff, importance export and resume tests with a tiny model; also runs with two virtual CPU devices. |
 | [uv.lock](../uv.lock) | Resolved dependency lock derived from the source lock; excluded hardware/RLDS dependency groups removed. |

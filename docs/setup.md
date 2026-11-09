@@ -11,7 +11,7 @@ uv sync --frozen --extra cuda
 uv run --extra cuda python scripts/train.py --help
 ```
 
-Use `--extra cuda` on GPU training invocations. CPU checks can use `uv sync --frozen` followed by `uv run pytest`. The lockfile preserves the source JAX 0.5.3, Flax 0.10.2, Optax 0.2.4 and Orbax 0.11.13 stack. LeRobot is pinned to source revision `0cf864870cf29f4738d3ade893e6fd13fbd7cdb5`.
+Use `--extra cuda` on GPU training invocations. The lockfile preserves the source JAX 0.5.3, Flax 0.10.2, Optax 0.2.4 and Orbax 0.11.13 stack. LeRobot is pinned to source revision `0cf864870cf29f4738d3ade893e6fd13fbd7cdb5`.
 
 Base model parameters load from `gs://openpi-assets/checkpoints/pi05_base/params` through the original downloader. Keep sufficient local disk space for the model, data, optimizer checkpoints and importance arrays. `OPENPI_DATA_HOME` can redirect the model cache; `HF_LEROBOT_HOME` can redirect the dataset cache.
 

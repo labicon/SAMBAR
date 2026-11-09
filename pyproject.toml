@@ -129,10 +129,6 @@ known-third-party = ["wandb"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.pytest.ini_options]
-markers = ["manual: should be run manually."]
-testpaths = ["tests"]
-
 [project.optional-dependencies]
 cuda = ["jax[cuda12]==0.5.3"]
 

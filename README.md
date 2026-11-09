@@ -32,8 +32,7 @@ SAMBAR/
 ├── examples/libero/                # Simulator setup, rollouts and evaluation
 ├── assets/sambar/                  # Narrow/broad normalization statistics
 ├── packages/openpi-client/         # Shared policy client
-├── docs/                          # Setup, experiments, method notes and website
-└── tests/                         # CPU regression tests
+└── docs/                          # Setup, experiments, method notes and website
 ```
 
 
