@@ -10,7 +10,20 @@
 | RETAIN | `baselines.RETAIN` | Not used in the merge |
 | LoRA | `baselines.train --method lora` | Not used by its loss |
 | Co-training | `baselines.train --method cotrain` | Intentionally replays old data |
-| GRPO + LoRA | `baselines.train_grpo` | Online simulator rollouts, with optional per-task SFT |
+| Simple Recipe Works (GRPO + LoRA) | `baselines.train_grpo` | Online simulator rollouts after a current-task LoRA warm-up |
+
+## Baseline finetuning settings
+
+The table gives the demonstration-based finetuning budgets used in the experiments. For RETAIN, the budget applies to SFT before the checkpoint merge.
+
+| Pretraining regime | Finetuning task | Batch size | Learning rate | Iterations per task |
+| --- | --- | ---: | ---: | ---: |
+| Broad (117 tasks) | pot-on-stove, items-into-basket | 64 | 2.5 × 10⁻⁵ | 500 |
+| Broad (117 tasks) | mugs-on-plates | 64 | 2.5 × 10⁻⁵ | 1,000 |
+| Narrow (32 tasks), independent finetuning | Each held-out task | 16 | 1 × 10⁻⁵ | 10,000 |
+| Narrow (32 tasks), three-stage sequential finetuning | Each successive task | 16 | 1 × 10⁻⁵ | 10,000 |
+
+The broad runs follow the [RETAIN evaluation protocol](https://arxiv.org/abs/2512.08333). Available GPU memory limited the narrow and sequential runs to a batch size of 16. For the penalty-based baselines, λ<sub>EWC</sub> = λ<sub>L2</sub> = 0.02, matching SAMBAR’s ρ. EWC estimated its diagonal Fisher from 50 minibatches at the start of each stage.
 
 ## Narrow and broad
 
@@ -19,11 +32,12 @@ For SFT, L2, EWC or LoRA, replace METHOD below with `sft`, `l2`, `ewc` or `lora`
 ```bash
 uv run --extra cuda python -m baselines.train --method METHOD --setting narrow \
   --exp-name task3 --pretrained-path checkpoints/sambar_narrow/pretrain32/29999/params \
-  --finetune-task-ids 3
+  --finetune-task-ids 3 --batch-size 16 --lr 1e-5 --num-train-steps 10000
 
 uv run --extra cuda python -m baselines.train --method METHOD --setting broad \
   --exp-name moka --pretrained-path checkpoints/sambar_broad/pretrain117/29999/params \
-  --finetune-tasks 'turn on the stove and put the moka pot on it'
+  --finetune-tasks 'turn on the stove and put the moka pot on it' \
+  --batch-size 64 --lr 2.5e-5 --num-train-steps 500
 ```
 
 For all three broad tasks in a combined stage, omit `--finetune-tasks`; to evaluate independent finetuning, invoke each task separately from the same pretrained checkpoint. `--method METHOD --help` lists that implementation's full options. Full-parameter output configs are `sambar_narrow`/`sambar_broad`; LoRA outputs use `libero_lora`/`libero_broad_lora`.
@@ -49,8 +63,8 @@ for task in 3 8 11; do
   fi
   uv run --extra cuda python -m baselines.train --method "$method" --setting narrow \
     --exp-name "${method}_sequence/stage${stage}" --pretrained-path "$previous" \
-    --finetune-task-ids "$task" --num-train-steps 30000 "${extra[@]}"
-  previous="checkpoints/${config}/${method}_sequence/stage${stage}/29999/params"
+    --finetune-task-ids "$task" --batch-size 16 --lr 1e-5 --num-train-steps 10000 "${extra[@]}"
+  previous="checkpoints/${config}/${method}_sequence/stage${stage}/9999/params"
   learned+=("$task")
 done
 ```
@@ -63,7 +77,7 @@ First run the SFT baseline, then:
 
 ```bash
 uv run --extra cuda python -m baselines.RETAIN \
-  --sft checkpoints/sambar_narrow/task3/29999 \
+  --sft checkpoints/sambar_narrow/task3/9999 \
   --pretrained checkpoints/sambar_narrow/pretrain32/29999 \
   --alpha 0.5 --out checkpoints/retain/task3
 ```
@@ -82,13 +96,13 @@ bash baselines/train_cotrain_seq_libero.sh
 
 The launcher retains its 10,000-step, batch-16, LR-1e-5 defaults; set `STEPS`, `BATCH` and `LR` to match a comparison protocol. It mixes pretraining and already-learned tasks with the current task. A single stage can be launched through `--method cotrain --finetune-task-ids 3`; later stages add `--old-task-ids`. The source implementation supports the narrow/sequential curriculum only. No new broad replay protocol has been invented.
 
-## GRPO + LoRA
+## Simple Recipe Works (GRPO + LoRA)
 
-The requested sequence script and simulator worker are retained:
+This RL baseline optimizes the policy through environment rollouts and uses the rollout hyperparameters from [Simple Recipe Works](https://arxiv.org/abs/2603.11653). The narrowly pretrained checkpoint achieved 0–5% success on the held-out tasks, so successful rollouts were too rare to provide a reliable reward signal. Before collecting rollouts at each stage, we trained the LoRA adapters for 100 behavior-cloning iterations on that task’s demonstrations.
 
 ```bash
 PRETRAIN=checkpoints/sambar_narrow/pretrain32/29999/params \
-TASKS='3 8 11' SKIP_EVAL=1 \
+TASKS='3 8 11' SFT_STEPS=100 SKIP_EVAL=1 \
 bash baselines/train_grpo_lora_seq_libero.sh
 ```
 

@@ -59,6 +59,21 @@ To start sequential SAMBAR finetuning from either checkpoint, first [export its 
 
 ## Training
 
+### SAMBAR finetuning settings
+
+| Pretraining regime | Finetuning task | Batch size | Learning rate | Iterations per task |
+| --- | --- | ---: | ---: | ---: |
+| Broad (117 tasks) | pot-on-stove, items-into-basket | 64 | 2.5 × 10⁻⁵ | 500 |
+| Broad (117 tasks) | mugs-on-plates | 64 | 2.5 × 10⁻⁵ | 1,000 |
+| Narrow (32 tasks), independent finetuning | Each held-out task | 16 | 1 × 10⁻⁵ | 20,000 |
+| Narrow (32 tasks), three-stage sequential finetuning | Each successive task | 16 | 1 × 10⁻⁵ | 10,000 |
+
+The broad runs follow the [RETAIN evaluation protocol](https://arxiv.org/abs/2512.08333). Available GPU memory limited the narrow and sequential runs to a batch size of 16. We used 20,000 iterations for independent narrow finetuning because dual ascent gradually increases the cost of deviating from the anchor.
+
+We used an anchor penalty of ρ = 0.02 and estimated the current task’s diagonal Fisher importance from 50 minibatches at the start of each stage.
+
+### Training commands
+
 The unified trainer covers both pretraining curricula and sequential SAMBAR:
 
 ```bash
@@ -74,7 +89,7 @@ uv run --extra cuda python scripts/train.py \
 uv run --extra cuda python scripts/train.py \
   --mode sequential --setting narrow --exp-name sequence \
   --pretrained-path checkpoints/sambar_narrow/pretrain32/29999 \
-  --sequence 3 8 11
+  --sequence 3 8 11 --batch-size 16 --lr 1e-5 --num-train-steps 10000
 ```
 
 The checked-in normalization statistics can be recomputed through the same data pipeline:
@@ -92,7 +107,7 @@ See [experiments](docs/experiments.md) for independent finetuning, broad sequenc
 ```bash
 uv run --extra cuda python -m baselines.train --method sft --setting narrow \
   --exp-name sft_task3 --pretrained-path checkpoints/sambar_narrow/pretrain32/29999/params \
-  --finetune-task-ids 3
+  --finetune-task-ids 3 --batch-size 16 --lr 1e-5 --num-train-steps 10000
 ```
 
 ## LIBERO evaluation
@@ -100,7 +115,7 @@ uv run --extra cuda python -m baselines.train --method sft --setting narrow \
 ```bash
 bash examples/libero/setup.sh
 uv run --extra cuda python examples/libero/evaluate.py \
-  --checkpoint checkpoints/sambar_narrow/sequence/stage3/29999 \
+  --checkpoint checkpoints/sambar_narrow/sequence/stage3/9999 \
   --setting narrow --task-ids 3 8 11 --output outputs/sequence-stage3
 ```
 
