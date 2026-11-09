@@ -46,6 +46,17 @@ uv sync --frozen --extra cuda
 
 See [setup](docs/setup.md) for the pinned environment, base model and dataset locations. LIBERO uses a separate environment installed from pinned upstream; see the [LIBERO README](examples/libero/README.md).
 
+## Pretrained checkpoints
+
+The π0.5 checkpoints pretrained on LIBERO are available on [Berkeley-ICON-Lab/SAMBAR-checkpoints](https://huggingface.co/Berkeley-ICON-Lab/SAMBAR-checkpoints). Sign in to Hugging Face and request access to download the weights.
+
+| Pretraining curriculum | Checkpoint folder |
+| --- | --- |
+| Narrow (32 tasks) | [libero-32/15000](https://huggingface.co/Berkeley-ICON-Lab/SAMBAR-checkpoints/tree/main/libero-32/15000) |
+| Broad (117 tasks) | [libero-117/9999](https://huggingface.co/Berkeley-ICON-Lab/SAMBAR-checkpoints/tree/main/libero-117/9999) |
+
+To start sequential SAMBAR finetuning from either checkpoint, first [export its LIBERO pretraining importance](docs/experiments.md#pretraining-and-initial-importance).
+
 ## Training
 
 The unified trainer covers both pretraining curricula and sequential SAMBAR:
