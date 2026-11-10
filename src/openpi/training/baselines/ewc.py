@@ -25,12 +25,13 @@ import wandb
 
 import openpi.models.model as _model
 import openpi.shared.array_typing as at
-import openpi.shared.download as download
 import openpi.shared.nnx_utils as nnx_utils
 import openpi.training.checkpoints as _checkpoints
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
 import openpi.training.data_loader as _data_loader
 import openpi.training.optimizer as _optimizer
+from openpi.training.sambar import make_reference
 from openpi.training.sambar import parameters
 import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
@@ -49,15 +50,8 @@ class WL2Args:
 
     # Coefficient λ for the penalty (λ/2)·Σ Ω_old·‖θ_G − z‖². Fixed, applied every step.
     lam: float = 0.02
-    # Optional separate frozen reference for the penalty. If None, the reference is the
-    # weights loaded at init (θ_pre = the --pretrained-path stage-1 checkpoint). Set e.g.
-    # to "gs://openpi-assets/checkpoints/pi05_base/params" to anchor on the pi0.5 base.
-    anchor_path: str | None = None
     # Number of minibatches used to estimate the diagonal Fisher Ω_old = E[grad²].
     fisher_batches: int = 50
-    # Divide Ω_old by its mean so the penalty scale (hence a good λ) is comparable to plain
-    # L2. Off by default (raw squared-grad Fisher).
-    normalize_weights: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -83,11 +77,11 @@ class CliArgs:
     # form the Ω_old (Fisher) set, so one carried task gives 32 + 1 = 33. Empty => the 32 pretrain tasks.
     old_task_ids: tuple[int, ...] = ()
 
-    # Common TrainConfig overrides (None → keep the config default).
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     # Peak (and floor) learning rate override; rewrites the CosineDecaySchedule
-    # peak_lr=decay_lr (warmup/decay_steps kept). None → keep config default (5e-5).
+    # peak_lr=decay_lr (warmup/decay_steps kept).
     lr: float | None = None
     seed: int | None = None
     fsdp_devices: int | None = None
@@ -183,32 +177,6 @@ def init_train_state(
     return train_state, state_sharding
 
 
-# === frozen reference z = θ_pre =====================================
-
-
-def make_reference(state: training_utils.TrainState, wl2_args: WL2Args) -> Any:
-    """Build the frozen anchor z = θ_pre as a pure pytree of device arrays.
-
-    Default: the subset of the weights loaded at init (θ_pre = the stage-1 checkpoint).
-    If `wl2_args.anchor_path` is set, the leaves are taken from that checkpoint instead,
-    matched by path against the init structure."""
-    z = parameters(state.params)
-    if wl2_args.anchor_path is None:
-        # parameters returns views that ALIAS state.params buffers; step_fn donates
-        # `state`, so an aliasing z triggers a "buffer previously donated" crash. Copy.
-        return jax.tree.map(jnp.copy, z)
-
-    logging.info(f"[wl2] loading frozen anchor from: {wl2_args.anchor_path}")
-    anchor = _model.restore_params(download.maybe_download(wl2_args.anchor_path), restore_type=np.ndarray)
-    flat_anchor = traverse_util.flatten_dict(anchor, sep="/")
-    flat_z = traverse_util.flatten_dict(z, sep="/")
-    missing = [k for k in flat_z if k not in flat_anchor]
-    if missing:
-        raise ValueError(f"anchor checkpoint missing {len(missing)} parameter keys, e.g. {missing[:3]}")
-    flat_new = {k: jnp.asarray(flat_anchor[k], dtype=jnp.asarray(flat_z[k]).dtype) for k in flat_z}
-    return traverse_util.unflatten_dict(flat_new, sep="/")
-
-
 # === diagonal Fisher Ω_old = E[(∂L_BC/∂θ)²] over all parameters =========
 
 
@@ -243,15 +211,6 @@ def compute_fisher(fisher_step, rng, state, loader_iter, n_batches: int, mesh) -
         accum = sq if accum is None else jax.tree.map(jnp.add, accum, sq)
     jax.block_until_ready(accum)
     return jax.tree.map(lambda a: a / float(n_batches), accum)
-
-
-def normalize_fisher(omega: Any) -> Any:
-    """Divide Ω by its (leaf-count-weighted) mean so the penalty scale is comparable to
-    plain L2 — a good λ then transfers between the two scripts."""
-    total = sum(jnp.sum(o) for o in jax.tree.leaves(omega))
-    count = sum(o.size for o in jax.tree.leaves(omega))
-    mean = total / jnp.maximum(count, 1)
-    return jax.tree.map(lambda o: o / jnp.maximum(mean, 1e-30), omega)
 
 
 # === train step (single model; penalty gated by pen_scale) ==================
@@ -379,6 +338,8 @@ def build_config(args: CliArgs, task_strings: tuple[str, ...]) -> _config.TrainC
     """Clone the base config: set the task subset (task_names_keep) and, for the finetune
     phases, point the weight_loader at the stage-1 checkpoint so init params = θ_pre."""
     base = _config.get_config(args.config_name)
+    if args.mode != "pretrain":
+        base = finetuning_config(base, args, "narrow")
     data = dataclasses.replace(base.data, task_names_keep=task_strings)
 
     updates: dict[str, Any] = {
@@ -541,7 +502,7 @@ def main(args: CliArgs):
     # Frozen anchor z = θ_pre. For non-wl2 modes it is inert (pen_scale=0). FSDP-shard z
     # the SAME way as the parameters (fsdp_sharding is a deterministic function of leaf shape, so
     # θ, z and Ω stay co-sharded → no resharding in θ−z). With fsdp_devices=1 this is full replication.
-    z_raw = make_reference(state, args.wl2)
+    z_raw = make_reference(state)
     consensus_sharding = sharding.fsdp_sharding(z_raw, mesh, log=False)
     z = jax.device_put(z_raw, consensus_sharding)
 
@@ -557,14 +518,8 @@ def main(args: CliArgs):
         fisher_step = make_fisher_step(config, args.wl2, out_shardings=consensus_sharding)
         old_iter = iter(build_task_loader(config, pretrain_strings, data_sharding))
         omega = compute_fisher(fisher_step, fisher_rng, state, old_iter, args.wl2.fisher_batches, mesh)
-        if args.wl2.normalize_weights:
-            omega = jax.jit(normalize_fisher, out_shardings=consensus_sharding)(omega)
         n_pen = sum(int(np.prod(jnp.asarray(v).shape)) for v in jax.tree.leaves(z)) / 1e6
-        logging.info(
-            f"[wl2] penalizing {n_pen:.1f}M params (penalty_subset=all, "
-            f"); λ={args.wl2.lam}, normalize_weights={args.wl2.normalize_weights} "
-            f"(penalty = λ/2·Σ Ω_old·‖θ−z‖²)"
-        )
+        logging.info(f"[wl2] penalizing {n_pen:.1f}M parameters with raw Fisher weights and λ={args.wl2.lam}")
     else:
         omega = jax.jit(lambda t: jax.tree.map(jnp.ones_like, t), out_shardings=consensus_sharding)(z)
 

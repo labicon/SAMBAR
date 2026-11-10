@@ -8,8 +8,6 @@ Research code for continual finetuning of π0.5 on LIBERO, built on [openpi](htt
 
 ## Repository structure
 
-The layout follows the openpi-based [RETAIN code repository](https://github.com/yajatyadav/RETAIN_code), with a dedicated folder for baseline commands:
-
 ```text
 SAMBAR/
 ├── scripts/                       # Training, normalization and policy serving
@@ -61,6 +59,8 @@ To start sequential SAMBAR finetuning from either checkpoint, first [export its 
 
 ### SAMBAR finetuning settings
 
+The trainer selects these defaults from the regime and task. The learning rate is the configured peak.
+
 | Pretraining regime | Finetuning task | Batch size | Learning rate | Iterations per task |
 | --- | --- | ---: | ---: | ---: |
 | Broad (117 tasks) | pot-on-stove, items-into-basket | 64 | 2.5 × 10⁻⁵ | 500 |
@@ -89,7 +89,7 @@ uv run --extra cuda python scripts/train.py \
 uv run --extra cuda python scripts/train.py \
   --mode sequential --setting narrow --exp-name sequence \
   --pretrained-path checkpoints/sambar_narrow/pretrain32/29999 \
-  --sequence 3 8 11 --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --sequence 3 8 11
 ```
 
 The checked-in normalization statistics can be recomputed through the same data pipeline:
@@ -107,7 +107,7 @@ SAMBAR trains and regularizes all parameters. For importance export and commands
 ```bash
 uv run --extra cuda python -m baselines.train --method sft --setting narrow \
   --exp-name sft_task3 --pretrained-path checkpoints/sambar_narrow/pretrain32/29999/params \
-  --finetune-task-ids 3 --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --finetune-task-ids 3
 ```
 
 ## LIBERO evaluation

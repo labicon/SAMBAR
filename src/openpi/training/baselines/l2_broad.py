@@ -22,6 +22,8 @@ import wandb
 
 import openpi.training.checkpoints as _checkpoints
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
+from openpi.training.sambar import make_reference
 import openpi.training.optimizer as _optimizer
 import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
@@ -32,7 +34,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from openpi.training.baselines.l2 import L2Args  # noqa: E402
 from openpi.training.baselines.l2 import init_logging  # noqa: E402
 from openpi.training.baselines.l2 import init_train_state  # noqa: E402
-from openpi.training.baselines.l2 import make_reference  # noqa: E402
 from openpi.training.baselines.l2 import plot_training_metrics  # noqa: E402
 from openpi.training.baselines.l2 import train_step  # noqa: E402
 
@@ -67,7 +68,7 @@ class CliArgs:
     # Tasks held out from the pretrain mixture (1 per goal/object/spatial suite → 27).
     pretrain_holdout_tasks: tuple[str, ...] = PRETRAIN_HOLDOUT_TASKS
 
-    # Common TrainConfig overrides (None → keep the config default).
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     # Peak (and floor) learning rate override, same semantics as the sibling scripts.
@@ -97,6 +98,8 @@ def build_config(args: CliArgs) -> _config.TrainConfig:
     hparams/checkpoint self-documentation — the loader is built by this script), point
     the finetune phases' weight_loader at the pretrain checkpoint, apply overrides."""
     base = _config.get_config(args.config_name)
+    if args.mode != "pretrain":
+        base = finetuning_config(base, args, "broad")
 
     updates: dict[str, Any] = {
         "exp_name": args.exp_name,
@@ -228,7 +231,7 @@ def main(args: CliArgs):
     # Frozen reference z = θ_pre. Inert in pretrain/bc modes (pen_scale=0). FSDP-shard z
     # the SAME way as the parameters (fsdp_sharding is a deterministic function of leaf shape,
     # so θ and z stay co-sharded → no resharding in θ−z).
-    z_raw = make_reference(state, args.l2)
+    z_raw = make_reference(state)
     z_sharding = sharding.fsdp_sharding(z_raw, mesh, log=False)
     z = jax.device_put(z_raw, z_sharding)
     if is_l2:

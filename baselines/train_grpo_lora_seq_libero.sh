@@ -4,7 +4,7 @@
 #
 # Starts from the 32-task BC pretrain checkpoint, which has never seen TASKS. Each new task arrives as
 # one stage with two phases on the SAME LoRA adapter (only LoRA trains, config libero_grpo_lora):
-#   1. SFT: BC on the new task's demos (scripts/train.py --mode bc_finetune, LoRA-only), so the
+#   1. SFT: BC on the new task's demos (-m baselines.train --method sft, LoRA-only), so the
 #      policy reaches partial competence. The paper instead starts from an SFT ckpt that already saw
 #      every task; this is the per-task analog for tasks that are genuinely new.
 #   2. RL: online GRPO on that task (-m baselines.train_grpo), paper defaults.
@@ -16,8 +16,7 @@
 #   TRAIN_GPUS=0,1,2,3 ENV_GPUS=4,5,6,7 EVAL_GPU=7 ./baselines/train_grpo_lora_seq_libero.sh
 #   TASKS="3 8 11" SFT_STEPS=100 SFT_LR=5e-5 ./baselines/train_grpo_lora_seq_libero.sh --grpo.noise-level 0.5
 # Extra args are passed through to every RL phase (e.g. --grpo.* overrides).
-# SKIP_SFT=1 skips phase 1 (paper-style RL only). SKIP_EVAL=1 skips the per-stage LIBERO-40 eval.
-# EVAL_SFT=1 also evaluates the post-SFT checkpoint (separates BC-induced vs RL-induced forgetting).
+# SKIP_EVAL=1 skips the per-stage LIBERO-40 eval.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -82,11 +81,10 @@ for task in $TASKS; do
     fi
 
     # --- phase 1: SFT (BC, LoRA-only) on the new task's demos ---
-    if [[ "${SKIP_SFT:-0}" != 1 ]]; then
-        sft_exp="${exp}_sft"
-        if [[ -d "./checkpoints/${CONFIG}/${sft_exp}/$((SFT_STEPS - 1))/params" ]]; then
-            echo "=== [task ${task}] SFT checkpoint already exists -> reusing ${sft_exp}/$((SFT_STEPS - 1))"
-        else
+    sft_exp="${exp}_sft"
+    if [[ -d "./checkpoints/${CONFIG}/${sft_exp}/$((SFT_STEPS - 1))/params" ]]; then
+        echo "=== [task ${task}] SFT checkpoint already exists -> reusing ${sft_exp}/$((SFT_STEPS - 1))"
+    else
         echo "=== [task ${task}] SFT: ${SFT_STEPS} steps, lr ${SFT_LR}, batch ${SFT_BATCH} -> ${sft_exp}"
         CUDA_VISIBLE_DEVICES="$TRAIN_GPUS" XLA_PYTHON_CLIENT_MEM_FRACTION="${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.85}" \
             uv run --extra cuda python -m baselines.train --method sft \
@@ -94,13 +92,9 @@ for task in $TASKS; do
             --pretrained-path "$init" --split-seed "$SPLIT_SEED" --seed "$SEED" \
             --num-train-steps "$SFT_STEPS" --save-interval "$SFT_STEPS" --lr "$SFT_LR" --batch-size "$SFT_BATCH" \
             2>&1 | tee "$LOG_ROOT/${sft_exp}.log"
-        fi
-        sft_ckpt="$(last_ckpt "./checkpoints/${CONFIG}/${sft_exp}")"
-        if [[ "${EVAL_SFT:-0}" == 1 && "${SKIP_EVAL:-0}" != 1 ]]; then
-            eval_ckpt "$sft_ckpt" "${sft_exp}_step$(basename "$sft_ckpt")_all40" "${done_tasks[@]}" "$task"
-        fi
-        init="${sft_ckpt}/params"
     fi
+    sft_ckpt="$(last_ckpt "./checkpoints/${CONFIG}/${sft_exp}")"
+    init="${sft_ckpt}/params"
 
     # --- phase 2: online GRPO on the new task ---
     CUDA_VISIBLE_DEVICES="$TRAIN_GPUS" XLA_PYTHON_CLIENT_MEM_FRACTION="${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.85}" \

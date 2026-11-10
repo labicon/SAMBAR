@@ -29,6 +29,7 @@ import openpi.shared.array_typing as at
 import openpi.shared.nnx_utils as nnx_utils
 import openpi.training.checkpoints as _checkpoints
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
 import openpi.training.data_loader as _data_loader
 import openpi.training.optimizer as _optimizer
 import openpi.training.sharding as sharding
@@ -53,8 +54,6 @@ class CliArgs:
     split_seed: int = 7
     # Tasks learned in earlier sequential stages; replayed together with the pretrain tasks.
     old_task_ids: tuple[int, ...] = ()
-    # Replay the seed's 32 pretrain tasks (False => replay only --old-task-ids).
-    replay_pretrain: bool = True
     # Fraction of every batch drawn from the old task set.
     old_fraction: float = 0.5
 
@@ -92,7 +91,7 @@ def init_logging():
 
 
 def resolve_task_sets(args: CliArgs) -> tuple[list[int], list[int], list[int]]:
-    """(finetune_ids, old_ids, pretrain_ids). old = pretrain (if replayed) ∪ carried-over tasks."""
+    """(finetune_ids, old_ids, pretrain_ids). old = pretrain ∪ carried-over tasks."""
     for t in (*args.finetune_task_ids, *args.old_task_ids):
         if not (0 <= t < 40):
             raise SystemExit(f"task id {t} outside LIBERO-40")
@@ -100,10 +99,7 @@ def resolve_task_sets(args: CliArgs) -> tuple[list[int], list[int], list[int]]:
     if not ft_ids:
         raise SystemExit("--finetune-task-ids is required")
     pretrain_ids, _ = sample_pretrain_tasks(args.tasks_per_suite, args.split_seed)
-    old = {int(t) for t in args.old_task_ids}
-    if args.replay_pretrain:
-        old |= set(pretrain_ids)
-    old_ids = sorted(old)
+    old_ids = sorted(set(pretrain_ids).union(args.old_task_ids))
     overlap = sorted(set(old_ids) & set(ft_ids))
     if overlap:
         raise SystemExit(f"old (replay) task set overlaps the finetune set on {overlap}")
@@ -220,6 +216,7 @@ def train_step(
 
 def build_config(args: CliArgs, task_strings: tuple[str, ...]) -> _config.TrainConfig:
     base = _config.get_config(args.config_name)
+    base = finetuning_config(base, args, "narrow")
     updates: dict[str, Any] = {
         "exp_name": args.exp_name,
         "data": dataclasses.replace(base.data, task_names_keep=task_strings),

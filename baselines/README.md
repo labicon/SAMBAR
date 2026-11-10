@@ -14,7 +14,7 @@
 
 ## Baseline finetuning settings
 
-The table gives the demonstration-based finetuning budgets used in the experiments. For RETAIN, the budget applies to SFT before the checkpoint merge.
+The supervised trainers select these defaults from the regime and task. The learning rate is the configured peak. For RETAIN, the budget applies to SFT before the checkpoint merge.
 
 | Pretraining regime | Finetuning task | Batch size | Learning rate | Iterations per task |
 | --- | --- | ---: | ---: | ---: |
@@ -32,17 +32,16 @@ For SFT, L2, EWC or LoRA, replace METHOD below with `sft`, `l2`, `ewc` or `lora`
 ```bash
 uv run --extra cuda python -m baselines.train --method METHOD --setting narrow \
   --exp-name task3 --pretrained-path checkpoints/sambar_narrow/pretrain32/29999/params \
-  --finetune-task-ids 3 --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --finetune-task-ids 3
 
 uv run --extra cuda python -m baselines.train --method METHOD --setting broad \
   --exp-name moka --pretrained-path checkpoints/sambar_broad/pretrain117/29999/params \
-  --finetune-tasks 'turn on the stove and put the moka pot on it' \
-  --batch-size 64 --lr 2.5e-5 --num-train-steps 500
+  --finetune-tasks 'turn on the stove and put the moka pot on it'
 ```
 
-For all three broad tasks in a combined stage, omit `--finetune-tasks`; to evaluate independent finetuning, invoke each task separately from the same pretrained checkpoint. `--method METHOD --help` lists that implementation's full options. Full-parameter output configs are `sambar_narrow`/`sambar_broad`; LoRA outputs use `libero_lora`/`libero_broad_lora`.
+For all three broad tasks in a combined stage, omit `--finetune-tasks` and supply `--num-train-steps`. The reported budgets are for independent runs from the same pretrained checkpoint. `--method METHOD --help` lists that implementation's full options. Full-parameter output configs are `sambar_narrow`/`sambar_broad`; LoRA outputs use `libero_lora`/`libero_broad_lora`.
 
-L2 adds `lambda/2 * sum((theta-reference)**2)`, with `--l2.lam 0.02` by default. EWC adds `lambda/2 * sum(importance*(theta-reference)**2)`, with `--wl2.lam 0.02`, 50 Fisher batches and normalization disabled by default. The source opt-in `--wl2.normalize-weights` is retained. These defaults are inherited, not retuned by the refactor.
+L2 adds `lambda/2 * sum((theta-reference)**2)`, with `--l2.lam 0.02` by default. EWC adds `lambda/2 * sum(importance*(theta-reference)**2)`, with `--wl2.lam 0.02`, 50 Fisher minibatches and raw importance weights.
 
 ## Sequential finetuning sequences
 
@@ -63,7 +62,7 @@ for task in 3 8 11; do
   fi
   uv run --extra cuda python -m baselines.train --method "$method" --setting narrow \
     --exp-name "${method}_sequence/stage${stage}" --pretrained-path "$previous" \
-    --finetune-task-ids "$task" --batch-size 16 --lr 1e-5 --num-train-steps 10000 "${extra[@]}"
+    --finetune-task-ids "$task" "${extra[@]}"
   previous="checkpoints/${config}/${method}_sequence/stage${stage}/9999/params"
   learned+=("$task")
 done

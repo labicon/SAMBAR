@@ -52,34 +52,32 @@ The estimate covers the matching 32 or 117 LIBERO pretraining tasks. By default 
 | Narrow (32 tasks), independent | Each held-out task | 16 | 1 × 10⁻⁵ | 20,000 |
 | Narrow (32 tasks), sequential | Each of the three successive tasks | 16 | 1 × 10⁻⁵ | 10,000 |
 
+The trainer selects the step count, batch size and peak learning rate in the table when you omit their flags. The optimizer uses a 1,000-step learning-rate warmup, so a 500-step broad run finishes during warmup.
+
 SAMBAR used ρ = 0.02 and estimated the current task’s diagonal Fisher from 50 minibatches at the start of each stage. For SFT, L2, EWC, RETAIN, LoRA, co-training and GRPO, see the [baseline finetuning settings](../baselines/README.md#baseline-finetuning-settings).
 
 ## Independent finetuning
 
 ```bash
 uv run --extra cuda python scripts/train.py --mode sambar --setting narrow --exp-name task3 \
-  --pretrained-path checkpoints/libero-32/15000 --finetune-task-ids 3 \
-  --batch-size 16 --lr 1e-5 --num-train-steps 20000
+  --pretrained-path checkpoints/libero-32/15000 --finetune-task-ids 3
 
 uv run --extra cuda python scripts/train.py --mode sambar --setting broad --exp-name moka \
   --pretrained-path checkpoints/libero-117/9999 \
-  --finetune-tasks 'turn on the stove and put the moka pot on it' \
-  --batch-size 64 --lr 2.5e-5 --num-train-steps 500
+  --finetune-tasks 'turn on the stove and put the moka pot on it'
 ```
 
-Repeat with the same pretraining checkpoint for independent tasks. Passing multiple task IDs/names trains their combined data in one stage. In `sambar` mode, `--importance-path` selects the incoming history artifact; otherwise it is loaded from the incoming checkpoint's `importance/` folder.
+Repeat with the same pretraining checkpoint for independent tasks. Passing multiple task IDs or names trains their combined data in one stage. For broad tasks with different budgets or an unlisted task, supply `--num-train-steps`. In `sambar` mode, `--importance-path` selects the incoming history artifact; otherwise it is loaded from the incoming checkpoint's `importance/` folder.
 
 ## Three-stage sequential finetuning
 
 ```bash
 uv run --extra cuda python scripts/train.py --mode sequential --setting narrow --exp-name sequence \
-  --pretrained-path checkpoints/libero-32/15000 --sequence 3 8 11 \
-  --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --pretrained-path checkpoints/libero-32/15000 --sequence 3 8 11
 
 # Optional sequence starting from the broad checkpoint with the same per-stage budget.
 uv run --extra cuda python scripts/train.py --mode sequential --setting broad --exp-name broad_sequence \
-  --pretrained-path checkpoints/libero-117/9999 \
-  --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --pretrained-path checkpoints/libero-117/9999
 ```
 
 The narrow sequence reproduces the source task order. The broad command explicitly applies sequential mode to the broad new-task list; it does not imply the original broad results used sequential training. Outputs are `sequence/stage1`, `sequence/stage2`, `sequence/stage3`. History counts become 33/34/35 or 118/119/120. Each completed stage estimates only its current task for the history update.
@@ -92,8 +90,7 @@ For a task-only local dataset without historical demonstrations:
 uv run --extra cuda python scripts/train.py --mode sambar --setting narrow --exp-name local_current \
   --pretrained-path /path/to/previous/checkpoint \
   --finetune-repo-id local/current --finetune-root /path/to/current_lerobot_dataset \
-  --finetune-tasks 'exact language string from the original LIBERO task' \
-  --batch-size 16 --lr 1e-5 --num-train-steps 10000
+  --finetune-tasks 'exact language string from the original LIBERO task' --num-train-steps 10000
 ```
 
 This dataset must contain the same features/action conventions and valid LeRobot metadata as the source datasets. For separate local datasets per sequential stage, invoke each stage explicitly and chain its checkpoint.

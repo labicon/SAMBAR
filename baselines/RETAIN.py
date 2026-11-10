@@ -27,12 +27,6 @@ def main():
         default=0.5,
         help="Weight on SFT: merged = alpha*sft + (1-alpha)*pretrained. Default 0.5.",
     )
-    ap.add_argument(
-        "--assets-from",
-        default=None,
-        help="Dir whose assets/ (norm stats) to copy into <out>. Default: --sft "
-        "(SFT and its pretrain share identical norm stats anyway).",
-    )
     args = ap.parse_args()
 
     sft_dir = pathlib.Path(args.sft)
@@ -74,12 +68,11 @@ def main():
         ckptr.save((out_dir / "params").resolve(), ocp.args.PyTreeSave({"params": merged}))
     print(f"[merge] saved params -> {out_dir / 'params'}")
 
-    assets_src = pathlib.Path(args.assets_from) if args.assets_from else sft_dir
-    if (assets_src / "assets").exists():
-        shutil.copytree(assets_src / "assets", out_dir / "assets")
-        print(f"[merge] copied assets <- {assets_src / 'assets'}")
+    if (sft_dir / "assets").exists():
+        shutil.copytree(sft_dir / "assets", out_dir / "assets")
+        print(f"[merge] copied assets <- {sft_dir / 'assets'}")
     else:
-        print(f"[merge] WARNING: no assets/ at {assets_src}; serving will rely on config norm stats")
+        print(f"[merge] WARNING: no assets/ at {sft_dir}; serving will rely on config norm stats")
 
     # sanity: reload the merged checkpoint exactly as serve_policy would.
     rt = traverse_util.flatten_dict(_model.restore_params(out_dir / "params", restore_type=np.ndarray))

@@ -22,6 +22,8 @@ import wandb
 
 import openpi.training.checkpoints as _checkpoints
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
+from openpi.training.sambar import make_reference
 import openpi.training.optimizer as _optimizer
 import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
@@ -34,8 +36,6 @@ from openpi.training.baselines.ewc import compute_fisher  # noqa: E402
 from openpi.training.baselines.ewc import init_logging  # noqa: E402
 from openpi.training.baselines.ewc import init_train_state  # noqa: E402
 from openpi.training.baselines.ewc import make_fisher_step  # noqa: E402
-from openpi.training.baselines.ewc import make_reference  # noqa: E402
-from openpi.training.baselines.ewc import normalize_fisher  # noqa: E402
 from openpi.training.baselines.ewc import plot_training_metrics  # noqa: E402
 from openpi.training.baselines.ewc import train_step  # noqa: E402
 
@@ -70,7 +70,7 @@ class CliArgs:
     # Tasks held out from the pretrain mixture (1 per goal/object/spatial suite → 27).
     pretrain_holdout_tasks: tuple[str, ...] = PRETRAIN_HOLDOUT_TASKS
 
-    # Common TrainConfig overrides (None → keep the config default).
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     # Peak (and floor) learning rate override, same semantics as the sibling scripts.
@@ -100,6 +100,8 @@ def build_config(args: CliArgs) -> _config.TrainConfig:
     hparams/checkpoint self-documentation — the loader is built by this script), point
     the finetune phases' weight_loader at the pretrain checkpoint, apply overrides."""
     base = _config.get_config(args.config_name)
+    if args.mode != "pretrain":
+        base = finetuning_config(base, args, "broad")
 
     updates: dict[str, Any] = {
         "exp_name": args.exp_name,
@@ -231,7 +233,7 @@ def main(args: CliArgs):
     # Frozen anchor z = θ_pre. Inert in pretrain/bc modes (pen_scale=0). FSDP-shard z
     # the SAME way as the parameters (fsdp_sharding is a deterministic function of leaf
     # shape, so θ, z and Ω stay co-sharded → no resharding in θ−z).
-    z_raw = make_reference(state, args.wl2)
+    z_raw = make_reference(state)
     consensus_sharding = sharding.fsdp_sharding(z_raw, mesh, log=False)
     z = jax.device_put(z_raw, consensus_sharding)
 
@@ -247,14 +249,8 @@ def main(args: CliArgs):
         old_iter = iter(create_mixed_data_loader(dataclasses.replace(args, mode="pretrain"), config, data_sharding))
         omega = compute_fisher(fisher_step, fisher_rng, state, old_iter, args.wl2.fisher_batches, mesh)
         del old_iter  # release the mixture loader's workers; Ω_old is fixed for the run
-        if args.wl2.normalize_weights:
-            omega = jax.jit(normalize_fisher, out_shardings=consensus_sharding)(omega)
         n_pen = sum(int(np.prod(jnp.asarray(v).shape)) for v in jax.tree.leaves(z)) / 1e6
-        logging.info(
-            f"[wl2] penalizing {n_pen:.1f}M params (penalty_subset=all, "
-            f"trained=all); λ={args.wl2.lam}, "
-            f"normalize_weights={args.wl2.normalize_weights} (penalty = λ/2·Σ Ω_old·‖θ−z‖²)"
-        )
+        logging.info(f"[wl2] penalizing {n_pen:.1f}M parameters with raw Fisher weights and λ={args.wl2.lam}")
     else:
         omega = jax.jit(lambda t: jax.tree.map(jnp.ones_like, t), out_shardings=consensus_sharding)(z)
 

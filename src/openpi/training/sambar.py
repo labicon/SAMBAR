@@ -15,12 +15,10 @@ import flax.nnx as nnx
 import flax.traverse_util as traverse_util
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 import openpi.models.model as _model
 import openpi.shared.array_typing as at
-import openpi.shared.download as download
 import openpi.shared.nnx_utils as nnx_utils
 from openpi.training import sambar_math
 from openpi.training.sambar_math import weighted_z as weighted_z
@@ -33,13 +31,9 @@ import openpi.training.weight_loaders as _weight_loaders
 @dataclasses.dataclass(frozen=True)
 class SambarArgs:
     rho: float = 0.02
-    dual_period: int = 1
     beta: float = 1.0
     eps: float = 1e-8
     fisher_batches: int = 50
-    fisher_refresh: int = 0
-    warmup_steps: int = 0
-    anchor_path: str | None = None
 
 
 def parameters(params):
@@ -107,21 +101,9 @@ def init_train_state(
     return train_state, state_sharding
 
 
-def make_reference(state: training_utils.TrainState, wargs: SambarArgs) -> Any:
-    """Frozen all-parameter reference, copied independently of donated training buffers."""
-    z = parameters(state.params)
-    if wargs.anchor_path is None:
-        return jax.tree.map(jnp.copy, z)
-    logging.info(f"[sambar] loading frozen θ_pre reference from anchor: {wargs.anchor_path}")
-    anchor = _model.restore_params(download.maybe_download(wargs.anchor_path), restore_type=np.ndarray)
-    flat_anchor = traverse_util.flatten_dict(anchor, sep="/")
-    flat_z = traverse_util.flatten_dict(z, sep="/")
-    missing = [k for k in flat_z if k not in flat_anchor]
-    if missing:
-        raise ValueError(f"anchor checkpoint missing {len(missing)} all-parameter keys, e.g. {missing[:3]}")
-    # keep anchor leaves on host (numpy); the caller's device_put shards them across the mesh
-    flat_new = {k: np.asarray(flat_anchor[k], dtype=jnp.asarray(flat_z[k]).dtype) for k in flat_z}
-    return traverse_util.unflatten_dict(flat_new, sep="/")
+def make_reference(state: training_utils.TrainState) -> Any:
+    """Copy the incoming parameters so the anchor survives training-buffer donation."""
+    return jax.tree.map(jnp.copy, parameters(state.params))
 
 
 def make_fisher_step(config: _config.TrainConfig, wargs: SambarArgs, out_shardings=None):

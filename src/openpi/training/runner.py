@@ -24,6 +24,7 @@ from openpi.training import sambar_math
 from openpi.training import sharding
 from openpi.training import task_split
 from openpi.training import weight_loaders
+from openpi.training.finetuning import finetuning_config
 
 
 @dataclasses.dataclass(frozen=True)
@@ -99,11 +100,13 @@ def resolve_tasks(args):
     return dataclasses.replace(args, finetune_tasks=tuple(names)), tasks
 
 
-def build_config(args):
+def build_config(args, *, sequential=False):
     base = configs.get_config("sambar_" + args.setting)
     updates = dict(
         exp_name=args.exp_name, overwrite=args.overwrite, resume=args.resume, wandb_enabled=args.wandb_enabled
     )
+    if args.mode == "sambar":
+        base = finetuning_config(base, args, args.setting, sambar=True, sequential=sequential)
     if args.pretrained_path:
         path = (
             args.pretrained_path
@@ -133,14 +136,14 @@ def _method_state(theta_pre, omega_old, omega_new, z, u):
     return dict(theta_pre=theta_pre, omega_old=omega_old, omega_new=omega_new, z=z, u=u)
 
 
-def run_stage(args):
+def run_stage(args, *, sequential=False):
     method.init_logging()
-    if args.sambar.fisher_batches < 1 or args.sambar.dual_period < 1 or args.sambar.fisher_refresh < 0:
-        raise ValueError("fisher_batches and dual_period must be positive; fisher_refresh must be nonnegative")
+    if args.sambar.fisher_batches < 1:
+        raise ValueError("fisher_batches must be positive")
     if args.mode in ("sambar", "importance") and not args.pretrained_path:
         raise ValueError("--pretrained-path is required")
     args, current_tasks = resolve_tasks(args)
-    config = build_config(args)
+    config = build_config(args, sequential=sequential)
     loader_args = dataclasses.replace(args, mode="pretrain") if args.mode == "importance" else args
     if args.mode == "norm_stats":
         curriculum.run_norm_stats(loader_args, config)
@@ -181,10 +184,19 @@ def run_stage(args):
         "config": config.name,
         "steps": config.num_train_steps,
         "base_pi05_importance_available": False,
-        "resolved": {k: getattr(config, k) for k in ("batch_size", "seed", "fsdp_devices")},
+        "resolved": {
+            "batch_size": config.batch_size,
+            "seed": config.seed,
+            "fsdp_devices": config.fsdp_devices,
+            "lr_peak": config.lr_schedule.peak_lr,
+            "lr_decay": config.lr_schedule.decay_lr,
+        },
     }
     if resuming:
         previous = json.loads(manifest_path.read_text())
+        # Older manifests also stored the retired method switches. Finetuning checked their values above.
+        previous_method = previous["args"]["sambar"]
+        previous["args"]["sambar"] = {key: previous_method[key] for key in manifest["args"]["sambar"]}
         # A resume may change runtime logging only, not the scientific run definition.
         runtime_keys = {
             "resume",
@@ -233,7 +245,7 @@ def run_stage(args):
         elif saved is not None:
             raise ValueError("Pretraining checkpoint unexpectedly contains a SAMBAR method state")
     if not resuming or not is_sambar:
-        theta_pre = jax.device_put(method.make_reference(state, args.sambar), param_sharding)
+        theta_pre = jax.device_put(method.make_reference(state), param_sharding)
     new_loader_iter = iter(curriculum.create_mixed_data_loader(loader_args, config, data_sharding))
     weighted_z_fn = jax.jit(
         functools.partial(method.weighted_z, beta=args.sambar.beta, eps=args.sambar.eps),
@@ -272,27 +284,14 @@ def run_stage(args):
         for step in range(start, config.num_train_steps):
             batch = next(data_iter)
             with sharding.set_mesh(mesh):
-                active = jnp.float32(is_sambar and step >= args.sambar.warmup_steps)
+                active = jnp.float32(is_sambar)
                 rng_step = jax.random.fold_in(train_rng, state.step)
                 state, task_loss, total_loss, grad_norm = step_fn(rng_step, state, batch, u, z, active)
             if is_sambar:
-                if args.sambar.fisher_refresh > 0 and (step + 1) % args.sambar.fisher_refresh == 0:
-                    omega_new = None
-                    if (step + 1) % args.sambar.dual_period == 0:
-                        z = None
-                    omega_new = method.compute_fisher(
-                        fisher_step,
-                        jax.random.fold_in(fisher_rng, step + 1),
-                        state,
-                        new_loader_iter,
-                        args.sambar.fisher_batches,
-                        mesh,
-                    )
-                if (step + 1) % args.sambar.dual_period == 0:
-                    with sharding.set_mesh(mesh):
-                        theta = method.parameters(state.params)
-                        z = weighted_z_fn(theta_pre, theta, omega_old, omega_new)
-                        u, drift, dual_norm = dual_fn(theta, u, z)
+                with sharding.set_mesh(mesh):
+                    theta = method.parameters(state.params)
+                    z = weighted_z_fn(theta_pre, theta, omega_old, omega_new)
+                    u, drift, dual_norm = dual_fn(theta, u, z)
             infos.append(
                 jax.device_get(
                     dict(
@@ -368,6 +367,6 @@ def main(args: Args):
             finetune_tasks=(task,),
             finetune_task_ids=None,
         )
-        final = run_stage(stage)
+        final = run_stage(stage, sequential=True)
         previous, history = str(final / "params"), str(final / "importance")
     return final

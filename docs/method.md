@@ -19,9 +19,9 @@ z_j = \frac{\Omega_{old,j}\theta_{ref,j}+(\beta\Omega_{new,j}+\epsilon)\theta_j}
 {\Omega_{old,j}+\beta\Omega_{new,j}+\epsilon}.
 \]
 
-The objective adds `sum(u * (theta - z)) + rho/2 * sum((theta-z)**2)`. The dual update is `u += rho * (theta-z)`. The source optimizer update, RNG folding, warmup gate, Fisher refresh timing, consensus/dual order and metric averaging are retained.
+The objective adds `sum(u * (theta - z)) + rho/2 * sum((theta-z)**2)`. The dual update is `u += rho * (theta-z)`. The penalty is active from the first step. Each optimizer step is followed by a consensus and dual update.
 
-Inherited method defaults: rho=0.02, beta=1, epsilon=1e-8, Fisher batches=50, Fisher refresh=0, dual period=1, warmup=0. With refresh=0, the current-task importance used during training stays at its initial estimate. The separate estimate after stage completion is used for history in the next stage.
+The defaults are ρ = 0.02, β = 1, ε = 1e-8 and 50 Fisher minibatches. The current-task importance used during training stays at its initial estimate. A separate estimate at the end of the stage updates the history for the next task.
 
 ## Approved importance lifecycle change
 

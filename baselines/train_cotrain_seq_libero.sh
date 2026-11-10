@@ -9,7 +9,7 @@
 #   GPUS=4,5,6,7 OLD_FRACTION=0.5 ./baselines/train_cotrain_seq_libero.sh
 #   GPUS=0,1 TASKS="3 8 11" STEPS=10000 LR=1e-5 EVAL=1 EVAL_GPU=1 ./baselines/train_cotrain_seq_libero.sh
 #   GPUS=2,3 OLD_FRACTION=0.5 EVAL=final TRIALS=20 ./baselines/train_cotrain_seq_libero.sh
-# Extra args are passed through to every stage (e.g. --no-replay-pretrain).
+# Extra args are passed through to every stage.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

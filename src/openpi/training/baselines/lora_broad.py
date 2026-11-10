@@ -15,6 +15,7 @@ import tyro
 
 from openpi.training.baselines import supervised as _plain_train
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
 import openpi.training.weight_loaders as _weight_loaders
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -33,7 +34,7 @@ class CliArgs:
     # Finetune task strings (must match meta/tasks.jsonl of physical-intelligence/libero).
     finetune_tasks: tuple[str, ...] = DEFAULT_FINETUNE_TASKS
 
-    # Common TrainConfig overrides. None keeps the base config default.
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     lr: float | None = None
@@ -53,6 +54,7 @@ class CliArgs:
 
 def build_config(args: CliArgs) -> _config.TrainConfig:
     base = _config.get_config(args.config_name)
+    base = finetuning_config(base, args, "broad")
     if not args.finetune_tasks:
         raise SystemExit("--finetune-tasks must name at least one task string")
     data = dataclasses.replace(base.data, task_names_keep=tuple(args.finetune_tasks))
@@ -65,8 +67,6 @@ def build_config(args: CliArgs) -> _config.TrainConfig:
         "resume": args.resume,
         "wandb_enabled": args.wandb_enabled,
     }
-    # NOTE: --lr sets peak AND floor, so the cosine decay flattens. Omit it to keep the
-    # config's 2.5e-5 -> 2.5e-6 schedule (same as the BC/TACO libero90mix runs).
     if args.lr is not None:
         updates["lr_schedule"] = dataclasses.replace(base.lr_schedule, peak_lr=args.lr, decay_lr=args.lr)
     for field_name in (

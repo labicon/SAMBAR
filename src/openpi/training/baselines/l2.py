@@ -25,12 +25,13 @@ import wandb
 
 import openpi.models.model as _model
 import openpi.shared.array_typing as at
-import openpi.shared.download as download
 import openpi.shared.nnx_utils as nnx_utils
 import openpi.training.checkpoints as _checkpoints
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
 import openpi.training.data_loader as _data_loader
 import openpi.training.optimizer as _optimizer
+from openpi.training.sambar import make_reference
 from openpi.training.sambar import parameters
 import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
@@ -49,10 +50,6 @@ class L2Args:
 
     # Coefficient λ for the penalty (λ/2)·Σ‖θ_G − z‖². Fixed, applied every step.
     lam: float = 0.02
-    # Optional separate frozen reference for the penalty. If None, the reference is the
-    # weights loaded at init (θ_pre = the --pretrained-path stage-1 checkpoint). Set e.g.
-    # to "gs://openpi-assets/checkpoints/pi05_base/params" to anchor on the pi0.5 base.
-    anchor_path: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -75,11 +72,11 @@ class CliArgs:
     # Override the seed-derived holdout with explicit task indices (0..39) for finetune modes.
     finetune_task_ids: tuple[int, ...] | None = None
 
-    # Common TrainConfig overrides (None → keep the config default).
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     # Peak (and floor) learning rate override; rewrites the CosineDecaySchedule
-    # peak_lr=decay_lr (warmup/decay_steps kept). None → keep config default (5e-5).
+    # peak_lr=decay_lr (warmup/decay_steps kept).
     lr: float | None = None
     seed: int | None = None
     fsdp_devices: int | None = None
@@ -173,32 +170,6 @@ def init_train_state(
         out_shardings=state_sharding,
     )(init_rng, partial_params)
     return train_state, state_sharding
-
-
-# === frozen reference z = θ_pre =====================================
-
-
-def make_reference(state: training_utils.TrainState, l2_args: L2Args) -> Any:
-    """Build the frozen reference z = θ_pre as a pure pytree of device arrays.
-
-    Default: the subset of the weights loaded at init (θ_pre = the stage-1 checkpoint).
-    If `l2_args.anchor_path` is set, the leaves are taken from that checkpoint instead,
-    matched by path against the init structure."""
-    z = parameters(state.params)
-    if l2_args.anchor_path is None:
-        # parameters returns views that ALIAS state.params buffers; step_fn donates
-        # `state`, so an aliasing z triggers a "buffer previously donated" crash. Copy.
-        return jax.tree.map(jnp.copy, z)
-
-    logging.info(f"[l2] loading frozen reference from anchor: {l2_args.anchor_path}")
-    anchor = _model.restore_params(download.maybe_download(l2_args.anchor_path), restore_type=np.ndarray)
-    flat_anchor = traverse_util.flatten_dict(anchor, sep="/")
-    flat_z = traverse_util.flatten_dict(z, sep="/")
-    missing = [k for k in flat_z if k not in flat_anchor]
-    if missing:
-        raise ValueError(f"anchor checkpoint missing {len(missing)} parameter keys, e.g. {missing[:3]}")
-    flat_new = {k: jnp.asarray(flat_anchor[k], dtype=jnp.asarray(flat_z[k]).dtype) for k in flat_z}
-    return traverse_util.unflatten_dict(flat_new, sep="/")
 
 
 def l2_drift_sq(params: nnx.State, z: Any) -> jnp.ndarray:
@@ -306,6 +277,9 @@ def build_config(args: CliArgs, task_strings: tuple[str, ...]) -> _config.TrainC
     """Clone the base config: set the task subset (task_names_keep) and, for the finetune
     phases, point the weight_loader at the stage-1 checkpoint so init params = θ_pre."""
     base = _config.get_config(args.config_name)
+    if args.mode != "pretrain":
+        grpo_warmup = args.mode == "bc_finetune" and args.config_name == "libero_grpo_lora"
+        base = finetuning_config(base, args, "narrow", grpo_warmup=grpo_warmup)
     data = dataclasses.replace(base.data, task_names_keep=task_strings)
 
     updates: dict[str, Any] = {
@@ -451,7 +425,7 @@ def main(args: CliArgs):
     # Frozen reference z = θ_pre. For non-L2 modes it is inert (pen_scale=0). FSDP-shard z
     # the SAME way as the parameters (fsdp_sharding is a deterministic function of leaf shape, so
     # θ and z stay co-sharded → no resharding in θ−z). With fsdp_devices=1 this is full replication.
-    z_raw = make_reference(state, args.l2)
+    z_raw = make_reference(state)
     z_sharding = sharding.fsdp_sharding(z_raw, mesh, log=False)
     z = jax.device_put(z_raw, z_sharding)
     if is_l2:

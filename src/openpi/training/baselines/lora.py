@@ -15,6 +15,7 @@ import tyro
 
 from openpi.training.baselines import supervised as _plain_train
 import openpi.training.config as _config
+from openpi.training.finetuning import finetuning_config
 import openpi.training.weight_loaders as _weight_loaders
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -37,7 +38,7 @@ class CliArgs:
     split_seed: int = 7
     finetune_task_ids: tuple[int, ...] | None = None
 
-    # Common TrainConfig overrides. None keeps the base config default.
+    # Finetuning uses the reported budget unless overridden.
     num_train_steps: int | None = None
     batch_size: int | None = None
     lr: float | None = None
@@ -69,6 +70,7 @@ def resolve_finetune_task_ids(args: CliArgs) -> list[int]:
 
 def build_config(args: CliArgs, task_ids: list[int]) -> _config.TrainConfig:
     base = _config.get_config(args.config_name)
+    base = finetuning_config(base, args, "narrow")
     task_strings = task_strings_for_ids(base.data.repo_id, task_ids)
     data = dataclasses.replace(base.data, task_names_keep=task_strings)
 

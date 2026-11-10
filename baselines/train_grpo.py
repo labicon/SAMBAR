@@ -116,10 +116,8 @@ class GrpoArgs:
     # Actions executed per policy query (openpi LIBERO eval replans every 5 of the 10 predicted).
     replan_steps: int = 5
     reward_coef: float = 5.0
-    filter_rewards: bool = True
     rewards_lower_bound: float = 0.5
     rewards_upper_bound: float = 4.5
-    normalize_advantages: bool = True
     adv_eps: float = 1e-6
     clip_ratio_low: float = 0.2
     clip_ratio_high: float = 0.28
@@ -561,14 +559,9 @@ def grpo_advantages(gargs: GrpoArgs, ep_success: np.ndarray):
     scores = gargs.reward_coef * ep_success.astype(np.float64)
     groups = scores.reshape(-1, gargs.group_size)
     mean = groups.mean(axis=1, keepdims=True)
-    if gargs.normalize_advantages:
-        std = groups.std(axis=1, ddof=1, keepdims=True)  # torch.std default (unbiased)
-        adv = (groups - mean) / (std + gargs.adv_eps)
-    else:
-        adv = groups
-    keep = np.ones_like(mean, dtype=bool)
-    if gargs.filter_rewards:
-        keep = (mean >= gargs.rewards_lower_bound) & (mean <= gargs.rewards_upper_bound)
+    std = groups.std(axis=1, ddof=1, keepdims=True)
+    adv = (groups - mean) / (std + gargs.adv_eps)
+    keep = (mean >= gargs.rewards_lower_bound) & (mean <= gargs.rewards_upper_bound)
     keep = np.broadcast_to(keep, groups.shape)
     return adv.reshape(-1).astype(np.float32), keep.reshape(-1)
 

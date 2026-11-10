@@ -1,6 +1,6 @@
 # File guide
 
-The layout follows RETAIN/openpi: entry points in `scripts/`, reusable code in `src/openpi/`, benchmark utilities in `examples/libero/`, and documentation in `docs/`. The separate `baselines/` folder holds baseline commands and sequence launchers. The existing website at `docs/index.html` and its assets are unchanged.
+Training entry points live in `scripts/`. Reusable code lives in `src/openpi/`, benchmark utilities in `examples/libero/` and documentation in `docs/`. The separate `baselines/` folder holds baseline commands and sequence launchers. The project website is served from `docs/index.html`.
 
 | File | Purpose |
 | --- | --- |
@@ -91,6 +91,7 @@ The layout follows RETAIN/openpi: entry points in `scripts/`, reusable code in `
 | [src/openpi/training/config.py](../src/openpi/training/config.py) | LIBERO-only model/training configurations and data transforms; hardware configs removed and asset paths relocated. |
 | [src/openpi/training/curriculum.py](../src/openpi/training/curriculum.py) | 32-task and 27+90-task data selection, natural frame mixing, task-only dataset routing and normalization computation. |
 | [src/openpi/training/data_loader.py](../src/openpi/training/data_loader.py) | LeRobot task filtering, data transforms, batching and sharded device transfer. |
+| [src/openpi/training/finetuning.py](../src/openpi/training/finetuning.py) | Selects finetuning steps, batch size and peak learning rate by regime and task, and reads saved settings on resume. |
 | [src/openpi/training/importance.py](../src/openpi/training/importance.py) | Portable Orbax importance arrays plus task identities/counts; validates shape/structure and rejects repeated tasks. |
 | [src/openpi/training/optimizer.py](../src/openpi/training/optimizer.py) | Inherited learning-rate schedules and optimizer construction. |
 | [src/openpi/training/runner.py](../src/openpi/training/runner.py) | Shared experiment orchestration, task resolution, saved-importance loading, stage chaining and method-state persistence. |

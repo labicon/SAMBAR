@@ -15,6 +15,7 @@ import tqdm
 import openpi.shared.normalize as normalize
 import openpi.training.config as _config
 import openpi.training.data_loader as _data_loader
+from openpi.training.finetuning import BROAD_TASK_STEPS
 from openpi.training.task_split import _LIBERO_SUITE_RANGES
 from openpi.training.task_split import sample_pretrain_tasks
 from openpi.training.task_split import task_strings_for_ids
@@ -30,11 +31,7 @@ LIBERO40_REPO_ID = "physical-intelligence/libero"
 
 PRETRAIN_SUITES = ("goal", "object", "spatial")
 
-DEFAULT_FINETUNE_TASKS = (
-    "turn on the stove and put the moka pot on it",
-    "put the white mug on the left plate and put the yellow and white mug on the right plate",
-    "put both the alphabet soup and the cream cheese box in the basket",
-)
+DEFAULT_FINETUNE_TASKS = tuple(BROAD_TASK_STEPS)
 
 PRETRAIN_HOLDOUT_TASKS = (
     "put the bowl on the plate",  # LIBERO-goal    (task_index 10)
